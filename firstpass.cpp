@@ -49,9 +49,12 @@ void firstPassStateMachine(ifstream & source){
 			break;
 		}
 	}
+	printSymTbl(cout, symtbl);
+	printRecords(cout, records);
 }
 
 void checkFirstToken(istringstream & record, string & token, int & tblSub){
+	// TODO: token = getNextToken(record), will handle endline comments
 	record >> token; // Get first token
 	if(token[0] == ';'){ // ignore comments, no state change
 		return;
@@ -69,10 +72,10 @@ void checkFirstToken(istringstream & record, string & token, int & tblSub){
 			return;
 		}
 	} else { // must be valid label
-		int symPos;
-		if((symPos = checkTable(symtbl, token)) != -1){ // in sym table
+		Symbol * symPtr;
+		if((symPtr = checkTable(symtbl, token)) != NULL){ // in sym table
 			string err;
-			switch(symtbl[symPos].type){
+			switch(symPtr->type){
 			case LBL: // double defined label
 				err = "ERROR: Duplicate label definition.";
 				pushRecord(records, lineNum, record.str(), err);
@@ -82,14 +85,17 @@ void checkFirstToken(istringstream & record, string & token, int & tblSub){
 				pushRecord(records, lineNum, record.str(), err);
 				return;
 			case UNK: // forward reference, fill in data
-				symtbl[symPos].value = memLoc;
-				symtbl[symPos].type = LBL;
+				symPtr->value = memLoc;
+				symPtr->type = LBL;
 				fpstate = CHECK_INST_DIR;
 				return;
 			}
 		} else { // add label to symbol table
-			Symbol temp = { token, LBL, memLoc };
-			symtbl.push_back(temp);
+			Symbol temp;
+			temp.name = token;
+			temp.type = LBL;
+			temp.value = memLoc;
+			pushSymbol(symtbl, temp);
 			fpstate = CHECK_INST_DIR;
 			return;
 		}

@@ -1,6 +1,6 @@
 #include "commands.hpp"
 
-vector<Command> commands = {
+Command commands[CMD_TBL_SIZE] = {
 //	Mnemonic  Ins/Dir OpCnt	OpType
 	{"ADD", 	INST,	2,	CR_R},
 	{"ADDC",	INST,	2,	CR_R},
@@ -50,44 +50,17 @@ vector<Command> commands = {
 	{"WORD",	DIR,	1,	C},
 	{"XOR",		INST,	2,	CR_R}};
 
-int checkTable(vector<Command> & vec, string & mnemonic){
-	int low = 0, high = vec.size() - 1;
+int checkTable(Command (& tbl)[CMD_TBL_SIZE], string & mnemonic){
+	int low = 0, high = CMD_TBL_SIZE - 1;
 	while(low <= high){
 		int mid = low + (high - low)/ 2;
-		if (mnemonic.compare(vec[mid].name) == 0){ // mnem same
+		if (mnemonic.compare(tbl[mid].name) == 0){ // mnem same
 			return mid;
-		} else if (mnemonic.compare(vec[mid].name) < 0){ // mnem is lower
+		} else if (mnemonic.compare(tbl[mid].name) < 0){ // mnem is lower
 			high = mid - 1;
-		} else if (mnemonic.compare(vec[mid].name) > 0){ // mnem is higher
+		} else if (mnemonic.compare(tbl[mid].name) > 0){ // mnem is higher
 			low = mid + 1;
 		}
 	}
 	return -1;
-}
-
-void pushRecord(vector<Record> & vec, int lineNum, string rec, \
-string error, int memLoc){
-	Record temp;
-	temp.lineNum = lineNum;
-	temp.memLoc = memLoc;
-	temp.record = rec;
-	temp.error = error;
-	vec.push_back(temp);
-}
-
-template <typename T>
-ostream & operator<<(ostream & os, const vector<T> & v){
-	for(auto i : v){
-		os << i << endl;
-	}
-	os << endl;
-	return os;
-}
-
-ostream & operator<<(ostream & os, const Record & rec){
-	os << rec.lineNum << setw(10);
-	(rec.memLoc >= 0)? os << rec.memLoc : os << "";
-	os << rec.record;
-	(rec.error.empty())? os << endl : os << rec.error << endl;
-	return os;
 }

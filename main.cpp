@@ -1,10 +1,10 @@
 #include "main.hpp"
-			
-// holds all records for printing into list file:
-vector<Record> records;
 
 int main(int argc, char ** argv){
 	ifstream source;
+	
+	initSymTbl(symtbl);
+	initRecords(records);
 	
 	//	Ensure file has opened properly
 	if(argc != 2){

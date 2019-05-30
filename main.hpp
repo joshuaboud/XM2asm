@@ -7,6 +7,7 @@ using namespace std;
 
 #include "commands.hpp"	//	table of instructions and directives
 #include "firstpass.hpp"	//	first pass state machine
+#include "symbols.hpp"
 
 #define SYMTBL_SIZE 1000
 

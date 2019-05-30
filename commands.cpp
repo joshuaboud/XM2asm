@@ -65,22 +65,6 @@ int checkTable(vector<Command> & vec, string & mnemonic){
 	return -1;
 }
 
-int checkTable(vector<Symbol> & vec, string & mnemonic){
-	int low = 0, high = vec.size() - 1;
-	while(low <= high){
-		int mid = low + (high - low)/ 2;
-		if (mnemonic.compare(vec[mid].name) == 0){ // mnem same
-			return mid;
-		} else if (mnemonic.compare(vec[mid].name) < 0){ // mnem is lower
-			high = mid - 1;
-		} else if (mnemonic.compare(vec[mid].name) > 0){ // mnem is higher
-			low = mid + 1;
-		}
-	}
-	return -1;
-}
-
-
 void pushRecord(vector<Record> & vec, int lineNum, string rec, \
 string error, int memLoc){
 	Record temp;
@@ -89,22 +73,6 @@ string error, int memLoc){
 	temp.record = rec;
 	temp.error = error;
 	vec.push_back(temp);
-}
-
-bool validLabel(string str){
-	if(str.length() > 31)
-		return false;
-	// if first letter is NOT between 'A' and 'Z' or between 'a' and 'z'
-	if(!(('A' <= str[0] && str[0] <= 'Z') || ('a' <= str[0] && str[0] <= 'z')))
-		return false;
-	// check if rest of letters are alphanumeric or '_'
-	for(char i : str){
-		if(!(('A' <= i && i <= 'Z') || ('a' <= i && i <= 'z') || \
-		('0' <= i && i <= '9') || (i == '_')))
-			return false;
-	}
-	// if we made it here, it's a valid label
-	return true;
 }
 
 template <typename T>
@@ -121,13 +89,5 @@ ostream & operator<<(ostream & os, const Record & rec){
 	(rec.memLoc >= 0)? os << rec.memLoc : os << "";
 	os << rec.record;
 	(rec.error.empty())? os << endl : os << rec.error << endl;
-	return os;
-}
-
-ostream & operator<<(ostream & os, const Symbol & sym){
-	os << setw(31) << sym.name << " | ";
-	os << setw(3);
-	(sym.type == REG)? os << "REG" : os << "LBL";
-	os << " | " << sym.value;
 	return os;
 }

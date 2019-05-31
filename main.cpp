@@ -1,3 +1,12 @@
+/* File name: main.cpp
+ * Author: Josh Boudreau
+ * School: Dalhousie University
+ * Course: ECED 3403 - Computer Architecture
+ * Purpose: Open source module, initialize global tables and call state 
+ * 			machines for first and second pass
+ * Last Modified: 2019-05-30
+ */
+
 #include "main.hpp"
 
 int main(int argc, char ** argv){
@@ -17,8 +26,17 @@ int main(int argc, char ** argv){
 		exit(1);
 	}
 	
+	cout << commands[83].name << endl;
+	
 	// call state machine
 	firstPassStateMachine(source);
+	
+	if(!ERROR_FLAG){
+		// call second pass here
+	}
+	
+	// free symtbl
+	destroySymTbl(symtbl);
 	
 	return 0;
 }

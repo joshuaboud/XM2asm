@@ -1,33 +1,52 @@
+/* File name: symbols.cpp
+ * Author: Josh Boudreau
+ * School: Dalhousie University
+ * Course: ECED 3403 - Computer Architecture
+ * Purpose: Defines functions to be used with symbols and the symbol
+ * 			table, as well as defines the beginning and end of the
+ * 			symbol table linked list.
+ * Last Modified: 2019-05-30
+ */
+
 #include "symbols.hpp"
 
 // Globals
 
 Symbol * symtbl;
+Symbol * symtbl_end;
 
-Symbol * checkTable(Symbol * head, string & mnemonic){
+Symbol * checkTable(Symbol * head, string & name){
 	Symbol * itr = head;
 	while(itr != NULL){
-		if (mnemonic.compare(itr->name) == 0) // mnem same
+		if (name.compare(itr->name) == 0) // same
 			break;
 		itr = itr->next;
 	}
 	return itr; // if not found, will return NULL ptr
 }
 
-bool validLabel(string str){
+int validLabel(string str){
+	int flag = 0; // 0 false, 1 true, 2 special case for INST.[B|W]
 	if(str.length() > 31)
-		return false;
+		return flag;
 	// if first letter is NOT between 'A' and 'Z' or between 'a' and 'z'
 	if(!(('A' <= str[0] && str[0] <= 'Z') || ('a' <= str[0] && str[0] <= 'z')))
-		return false;
+		return flag;
 	// check if rest of letters are alphanumeric or '_'
 	for(char i : str){
 		if(!(('A' <= i && i <= 'Z') || ('a' <= i && i <= 'z') || \
-		('0' <= i && i <= '9') || (i == '_')))
-			return false;
+		('0' <= i && i <= '9') || (i == '_') || (i == '.'))){
+			flag = 0;
+			return flag;
+		}
+		if(i == '.'){ // special case of valid INST.[B|W], not valid label
+			flag = 2;
+		}
 	}
-	// if we made it here, it's a valid label
-	return true;
+	// if we made it here, it's a valid label or instruction
+	if(flag != 2) // if not special case above,
+		flag = 1; // return valid label
+	return flag;
 }
 
 void initSymTbl(Symbol *& head){
@@ -41,7 +60,10 @@ void initSymTbl(Symbol *& head){
 			{"R6", REG, 6},
 			{"R7", REG, 7}	};
 	head = NULL;
-	for(int i = 0; i < 8; i++){
+	pushSymbol(head, registers[0]); // init with first reg
+	head->prev = NULL;
+	symtbl_end = head; // symtbl_end points to bottom of list
+	for(int i = 1; i < 8; i++){
 		pushSymbol(head, registers[i]);
 	}
 }
@@ -52,26 +74,59 @@ void pushSymbol(Symbol *& head, Symbol & sym){
 	ptr->type = sym.type;
 	ptr->value = sym.value;
 	ptr->next = head;
+	ptr->prev = NULL;
+	if(head != NULL) // guard seg fault
+		head->prev = ptr;
 	head = ptr;
 }
 
 void printSymTbl(ostream & os, Symbol * head){
-	Symbol * itr = head;
+	Symbol * itr = symtbl_end; // start at bottom
 	if(itr == NULL){
 		os << "Symtbl empty!" << endl;
 		return;
 	}
+	
+	os << setw(28) << "" << "      SYMBOL TABLE" << endl;
+	os << setw(28) << "" << "------------------------" << endl;
 	while(itr != NULL){
 		os << itr;
+		itr = itr->prev; // move towards top
+	}
+}
+
+void destroySymTbl(Symbol * head){
+	Symbol * itr = head;
+	Symbol * temp;
+	if(itr == NULL){
+		return;
+	}
+	while(itr != NULL){
+		temp = itr;
 		itr = itr->next;
+		free(temp);
 	}
 }
 
 ostream & operator<<(ostream & os, Symbol * sym){
 	os << setw(31) << sym->name << " | ";
 	os << setw(3);
-	(sym->type == REG)? os << "REG" : os << "LBL";
-	os << " | " << sym->value;
+	switch(sym->type){
+	case REG:
+		os << "REG";
+		break;
+	case LBL:
+		os << "LBL";
+		break;
+	case UNK:
+		os << "UNK";
+		ERROR_FLAG = true;
+		break;
+	}
+	os << " | " << setw(6) << sym->value;
+	printf(" (0x%x)", sym->value);
+	if(sym->type == UNK)
+		os << " !!! ERROR: Unkown Symbol";
 	os << endl;
 	return os;
 }

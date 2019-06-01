@@ -22,10 +22,10 @@ Command commands[CMD_TBL_SIZE] = {
 	{"AND",		INST,	2,	CR_R},
 	{"AND.B",	INST,	2,	CR_R},
 	{"AND.W",	INST,	2,	CR_R},
-	{"BC",		INST,	1,	LBL10},
-	{"BEQ",		INST,	1,	LBL10},
-	{"BGE", 	INST,	1,	LBL10},
-	{"BHS",		INST,	1,	LBL10},
+	{"BC",		INST,	1,	V},
+	{"BEQ",		INST,	1,	V},
+	{"BGE", 	INST,	1,	V},
+	{"BHS",		INST,	1,	V},
 	{"BIC",		INST,	2,	CR_R},
 	{"BIC.B",	INST,	2,	CR_R},
 	{"BIC.W",	INST,	2,	CR_R},
@@ -35,17 +35,17 @@ Command commands[CMD_TBL_SIZE] = {
 	{"BIT",		INST,	2,	CR_R},
 	{"BIT.B",	INST,	2,	CR_R},
 	{"BIT.W",	INST,	2,	CR_R},
-	{"BL",		INST,	1,	LBL13},
-	{"BLO", 	INST,	1,	LBL10},
-	{"BLT", 	INST,	1,	LBL10},
-	{"BN",		INST,	1,	LBL10},
-	{"BNC",		INST,	1,	LBL10},
-	{"BNE", 	INST,	1,	LBL10},
-	{"BNZ", 	INST,	1,	LBL10},
-	{"BRA", 	INST,	1,	LBL10},
+	{"BL",		INST,	1,	V},
+	{"BLO", 	INST,	1,	V},
+	{"BLT", 	INST,	1,	V},
+	{"BN",		INST,	1,	V},
+	{"BNC",		INST,	1,	V},
+	{"BNE", 	INST,	1,	V},
+	{"BNZ", 	INST,	1,	V},
+	{"BRA", 	INST,	1,	V},
 	{"BSS",		DIR,	1,	C},
 	{"BYTE",	DIR,	1,	C},
-	{"BZ",		INST,	1,	LBL10},
+	{"BZ",		INST,	1,	V},
 	{"CEX",		INST,	3,	CEX}, // special code
 	{"CMP",		INST,	2,	CR_R},
 	{"CMP.B",	INST,	2,	CR_R},
@@ -55,9 +55,9 @@ Command commands[CMD_TBL_SIZE] = {
 	{"DADD.W",	INST,	2,	CR_R},
 	{"END",		DIR,	1,	Opt},
 	{"EQU",		DIR,	1,	C},
-	{"LD",		INST,	2,	R_R},
-	{"LD.B",	INST,	2,	R_R},
-	{"LD.W",	INST,	2,	R_R},
+	{"LD",		INST,	2,	LD},
+	{"LD.B",	INST,	2,	LD},
+	{"LD.W",	INST,	2,	LD},
 	{"LDR",		INST,	2,	R_R},
 	{"LDR.B",	INST,	2,	R_R},
 	{"LDR.W",	INST,	2,	R_R},
@@ -75,9 +75,9 @@ Command commands[CMD_TBL_SIZE] = {
 	{"SRA",		INST,	1,	R},
 	{"SRA.B",	INST,	1,	R},
 	{"SRA.W",	INST,	1,	R},
-	{"ST",		INST,	2,	R_R},
-	{"ST.B",	INST,	2,	R_R},
-	{"ST.W",	INST,	2,	R_R},
+	{"ST",		INST,	2,	ST},
+	{"ST.B",	INST,	2,	ST},
+	{"ST.W",	INST,	2,	ST},
 	{"STR",		INST,	2,	R_R},
 	{"STR.B",	INST,	2,	R_R},
 	{"STR.W",	INST,	2,	R_R},
@@ -111,7 +111,7 @@ int checkTable(Command (& tbl)[CMD_TBL_SIZE], string & mnemonic){
 	return -1;
 }
 
-bool validConstant(string operand){
+bool validValue(string operand){
 	int i = 1;
 	if(operand[1] == '-') // if negative start at position 2
 		i++;
@@ -136,6 +136,29 @@ bool validConstant(string operand){
 	}
 	// if we made it here, operand is valid.
 	return true;
+}
+
+bool validConstant(string operand){
+	string constants[16] = { "#0", "#1", "#2", "#4", "#8", "#16", "#32",\
+		 "#-1", "$0", "$1", "$2", "$4", "$8", "$10", "$20", "$FF"};
+	for(int i = 0; i < 16; i++){
+		if(operand == constants[i]){ // operand is valid constant
+			return true;
+		}
+	}
+	// operand is not valid constant
+	return false;
+}
+
+bool validConstant(uint16_t operand){
+	uint16_t constants[8] = { 0, 1, 2, 4, 8, 16, 32, 0xFF };
+	for(int i = 0; i < 8; i++){
+		if(operand == constants[i]){ // operand is valid constant
+			return true;
+		}
+	}
+	// operand is not valid constant
+	return false;
 }
 
 string getOperand(string & operands){

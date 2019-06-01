@@ -21,7 +21,8 @@ using namespace std;
 #define CMD_TBL_SIZE 83
 
 enum Command_type { DIR, INST };
-enum Operand_type { NONE, CR_R, R_R, C_R, C, R, Opt, LBL10, LBL13, CEX, SA};
+enum Operand_type { NONE, CR_R, R_R, C_R, C, R, Opt, V, CEX,\
+	 SA, LD, ST };
 
 struct Command {
 	string name;
@@ -36,7 +37,14 @@ int checkTable(Command (& tbl)[CMD_TBL_SIZE], string & mnemonic);
 // Returns positional subscript of array element by name,
 // or -1 if element not found. Uses binary search.
 
+bool validValue(string operand);
+
 bool validConstant(string operand);
+bool validConstant(uint16_t operand);
+// Returns true if operand is "#0", "#1", "#2", "#4", "#8", "#16", "#32",
+// "#-1", "$0", "$1", "$2", "$4", "$8", "$10", "$20", or "$FF". Else
+// returns false. Overloaded for case where checking against symbol,
+// where symbol->value is of type uint16_t.
 
 string getOperand(string & operands);
 // Extracts operands delimited by commas until end of record is reached.

@@ -46,4 +46,7 @@ ostream & operator<<(ostream & os, const Record * rec);
 void printRecords(ostream & os, Record * head);
 // Iterates over list of records, printing each one.
 
+void destroyRecords(Record * head);
+// Frees memory taken by record list.
+
 #endif

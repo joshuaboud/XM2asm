@@ -41,7 +41,9 @@ string error, int memLoc){
 ostream & operator<<(ostream & os, const Record * rec){
 	os << setw(3) << rec->lineNum;
 	if(rec->memLoc >= 0){
-		printf(" 0x%04x ", rec->memLoc);
+		os << " 0x" << setfill('0') << setw(4); // print as 0xNNNN padded w/ 0
+		os << hex << rec->memLoc << dec << " "; // print formatted hex
+		os << setfill(' '); // clear setw fill
 	}else{
 		os << "        ";
 	}
@@ -55,5 +57,18 @@ void printRecords(ostream & os, Record * head){
 	while(itr != NULL){
 		os << itr;
 		itr = itr->prev;
+	}
+}
+
+void destroyRecords(Record * head){
+	Record * itr = head;
+	Record * temp;
+	if(itr == NULL){
+		return;
+	}
+	while(itr != NULL){
+		temp = itr;
+		itr = itr->next;
+		free(temp);
 	}
 }

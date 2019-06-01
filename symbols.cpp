@@ -123,8 +123,8 @@ ostream & operator<<(ostream & os, Symbol * sym){
 		ERROR_FLAG = true;
 		break;
 	}
-	os << " | " << setw(6) << sym->value;
-	printf(" (0x%x)", sym->value);
+	os << " | " << setw(6) << sym->value; // print as dec
+	os << " (0x" << hex << sym->value << dec << ")"; // print as hex
 	if(sym->type == UNK)
 		os << " !!! ERROR: Unkown Symbol";
 	os << endl;

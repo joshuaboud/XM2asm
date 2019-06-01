@@ -6,7 +6,7 @@
  * 			file stream passed to it, builds a symbol table, and verifies
  * 			that there are no errors. All state changes are controlled
  * 			in this file.
- * Last Modified: 2019-05-31
+ * Last Modified: 2019-06-01
  */
 
 #include "firstpass.hpp"
@@ -38,8 +38,12 @@ void firstPassStateMachine(ifstream & source){
 		switch(fpstate){
 		case CHECK_FIRST_TOKEN:
 			// Get next record:
+			if(source.eof()){ // file not terminated with \n
+				END_OF_FIRST_PASS = true;
+				break;
+			}
 			getline(source, record);
-			if((record == "") && source.eof()){
+			if((record == "") && source.eof()){ // file terminated with \n
 				END_OF_FIRST_PASS = true;
 				break;
 			}
@@ -62,7 +66,6 @@ void firstPassStateMachine(ifstream & source){
 			memLoc += 2;
 			break;
 		}
-		
 	}
 }
 
@@ -147,6 +150,7 @@ void checkInstOrDir(istringstream & record, string & token, int & tblSub){
 
 void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & memLoc){
 	token = getNextToken(record); // should hold all operands
+	
 	string err;
 	Symbol * sym;
 	string operand;
@@ -541,6 +545,14 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 
 string getNextToken(istringstream & record){
 	string token;
+	
+	// to handle ' ' (space):
+	record >> std::ws; // eat whitespace to peek at '
+	if(record.peek() == '\''){ // next token will be char
+		getline(record, token, ';'); // grab until ';' or newline
+		return token;
+	}
+	
 	record >> token;
 	if(token.empty() || token[0] == ';'){
 		// end of record

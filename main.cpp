@@ -4,20 +4,23 @@
  * Course: ECED 3403 - Computer Architecture
  * Purpose: Open source module, list file, initialize global tables, and
  * call state machines for first and second pass
- * Last Modified: 2019-05-31
+ * Last Modified: 2019-06-01
  */
 
 #define DEBUG
 
 #include "main.hpp"
 
-int main(int argc, char ** argv){	
+int main(int argc, char ** argv){
+	// timestamp for list file
+	time_t timestamp = chrono::system_clock::to_time_t(chrono::system_clock::now());
+	
 	initSymTbl(symtbl);
 	initRecords(records);
 	
 	// File streams for input and output
 	ifstream source;
-	//	Ensure file has opened properly
+	// Ensure file has opened properly
 	if(argc != 2){
 		cout << "Must open with XM2 source module! Exiting..." << endl;
 		exit(1);
@@ -50,7 +53,9 @@ int main(int argc, char ** argv){
 	firstPassStateMachine(source);
 	
 	// first pass exit actions:
-	listFile << "X-Makina Assembler V 2.0";
+	listFile << "X-Makina Assembler V 2.0" << endl;
+	listFile << "File opened: \"" << argv[1] << "\"." << endl;
+	listFile << "Time of execution: " << ctime(& timestamp) << endl;
 	printRecords(listFile, records);
 	listFile << endl;
 	printSymTbl(listFile, symtbl);

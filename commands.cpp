@@ -5,7 +5,7 @@
  * Purpose: Defines list of commands (instructions + directives), along
  * 			with definitions of functions to be used with instructions
  * 			or directives.
- * Last Modified: 2019-05-31
+ * Last Modified: 2019-06-01
  */
 
 #include "commands.hpp"
@@ -114,34 +114,53 @@ int checkTable(Command (& tbl)[CMD_TBL_SIZE], string & mnemonic){
 bool validValue(string operand){
 	int i = 1;
 	char ch;
+	
+	// for escaped chars:
+	char escapees[8] = {'b','t','n','r','0','\\','\'','\"'};
+	
 	if(operand[1] == '-') // if negative start at position 2
 		i++;
 	switch(operand[0]){
 	case '#': // decimal
-		for(i; i < operand.length(); i++){
+		for(; i < (int)operand.length(); i++){ // i = 1 or 2
 			// if digit is NOT between '0' and '9'
 			if(!('0' <= operand[i] && operand[i] <= '9'))
 				return false;
 		}
-		return true;
+		break; // jump to return true
 	case '$': // hexadecimal
-		for(i; i < operand.length(); i++){
+		for(; i < (int)operand.length(); i++){ // i = 1 or 2
 			// if digit is NOT (between '0' and '9' or between 'A' and 'F')
 			if(!(('0' <= operand[i] && operand[i] <= '9') || \
 			('A' <= operand[i] && operand[i] <= 'F')))
 				return false;
 		}
-		break;
+		break; // jump to return true
 	case '\'': // char
-		if(operand.size() != 3){
-			// can only be one char ('\'' + char + '\'' = 3)
+		ch = operand[1]; // get first char after \'
+		if(operand.length() == 3){ // probably normal char e.g. {\',ch,\'}
+			if(!(' ' <= ch && ch <= '~')) // if ch is not valid char
+				return false; // not valid if char not in unescaped ascii table
+		}else if(operand.length() == 4){ // probably escaped char e.g. {\',\\,ch,\'}
+			// When C++ parses in a file with an escaped character, it does
+			// not take a raw escaped char. It escapes the backslash
+			// automatically as '\\' as its own char.
+			if(ch != '\\'){ // if not an escaped char
+				return false;
+			}else{ // check if next char is valid escape char
+				ch = operand[2]; // get next char after '\\'
+				for(i = 0; i < 8; i++){
+					if(ch == escapees[i])
+						return true; // char is valid escape char
+				}
+				// if we make it out of the for loop,
+				// char is not a valid escaped char
+				return false;
+			}
+		}else{ // too many characters in string for char
 			return false;
 		}
-		ch = operand[1]; // extract char
-		if(!(' ' <= ch && ch <= '~')){ // if ch is not valid char
-			return false;
-		}
-		break;
+		break;  // jump to return true
 	default: // does not start with # or $, is not char: invalid value
 		return false;
 	}
@@ -184,11 +203,18 @@ string getOperand(string & operands){
 	int delimiterPos = operands.find(',');
 	
 	if(delimiterPos == string::npos){ // no comma
-		delimiterPos = operands.find(' '); // maybe followed by space delim garbage
-		if(delimiterPos == string::npos){ // no space
-			operand = operands;
-			operands.erase(0, operands.length());
-			return operand;
+		switch(operands[0]){
+		case '\'': // in case operand is ' ' (space)
+			// keep until last \', inclusive
+			delimiterPos = operands.find_last_of('\'') + 1;
+			break;
+		default:
+			delimiterPos = operands.find(' '); // maybe followed by space delim garbage
+			if(delimiterPos == string::npos){ // no space
+				operand = operands;
+				operands.erase(0, operands.length());
+				return operand;
+			}
 		}
 	}
 	

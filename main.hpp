@@ -4,7 +4,7 @@
  * Course: ECED 3403 - Computer Architecture
  * Purpose: Include necessary headers to init symbol table and command
  * 			table, and to call state machines
- * Last Modified: 2019-05-30
+ * Last Modified: 2019-06-01
  */
 
 #ifndef MAIN_H
@@ -12,6 +12,8 @@
 
 #include <iostream>
 #include <iomanip>
+#include <ctime>
+#include <chrono>
 using namespace std;
 
 #include "commands.hpp"	//	table of instructions and directives

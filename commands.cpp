@@ -5,7 +5,7 @@
  * Purpose: Defines list of commands (instructions + directives), along
  * 			with definitions of functions to be used with instructions
  * 			or directives.
- * Last Modified: 2019-05-30
+ * Last Modified: 2019-05-31
  */
 
 #include "commands.hpp"
@@ -113,6 +113,7 @@ int checkTable(Command (& tbl)[CMD_TBL_SIZE], string & mnemonic){
 
 bool validValue(string operand){
 	int i = 1;
+	char ch;
 	if(operand[1] == '-') // if negative start at position 2
 		i++;
 	switch(operand[0]){
@@ -131,10 +132,20 @@ bool validValue(string operand){
 				return false;
 		}
 		break;
-	default: // does not start with # or $: invalid operand
+	case '\'': // char
+		if(operand.size() != 3){
+			// can only be one char ('\'' + char + '\'' = 3)
+			return false;
+		}
+		ch = operand[1]; // extract char
+		if(!(' ' <= ch && ch <= '~')){ // if ch is not valid char
+			return false;
+		}
+		break;
+	default: // does not start with # or $, is not char: invalid value
 		return false;
 	}
-	// if we made it here, operand is valid.
+	// if we made it here, value is valid.
 	return true;
 }
 

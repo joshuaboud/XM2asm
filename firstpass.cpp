@@ -6,7 +6,7 @@
  * 			file stream passed to it, builds a symbol table, and verifies
  * 			that there are no errors. All state changes are controlled
  * 			in this file.
- * Last Modified: 2019-05-30
+ * Last Modified: 2019-05-31
  */
 
 #include "firstpass.hpp"
@@ -386,7 +386,7 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 			fpstate = CHECK_FIRST_TOKEN;
 			return;
 		}else if((sym = checkTable(symtbl, operand)) == NULL && \
-		validLabel(operand) != 1){
+		validLabel(operand) != 1 && !validValue(operand)){
 			// not a label or valid label to make forward reference
 			err = "ERROR: Operand must be value.";
 			pushRecord(records, lineNum, record.str(), err, memLoc);

@@ -4,14 +4,14 @@
  * Course: ECED 3403 - Computer Architecture
  * Purpose: Open source module, list file, initialize global tables, and
  * call state machines for first and second pass
- * Last Modified: 2019-05-30
+ * Last Modified: 2019-05-31
  */
 
 #define DEBUG
 
 #include "main.hpp"
 
-int main(int argc, char ** argv){
+int main(int argc, char ** argv){	
 	initSymTbl(symtbl);
 	initRecords(records);
 	

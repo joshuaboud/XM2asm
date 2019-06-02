@@ -32,7 +32,7 @@ extern Symbol * symtbl_end; // for printing the right way around
 
 extern bool ERROR_FLAG;
 
-Symbol * checkTable(Symbol * head, string & name);
+Symbol * checkTable(Symbol * head, string name);
 // Returns pointer to found element by name,
 // or NULL if element not found. Uses iterative search.
 

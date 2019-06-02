@@ -41,6 +41,10 @@ void checkInstOrDir(istringstream & record, string & token, int & tblSub);
 void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & memLoc);
 // Verifies operands of instruction and adds to list of records with location counter.
 
+void checkDir(istringstream & record, string & token, int & tblSub, uint16_t & memLoc, string label);
+// Verifies operands of directive and adds to list of records, modifies location counter
+// for applicable directives.
+
 string getNextToken(istringstream & record);
 // Extracts next token out of stream, handles comments and errors
 

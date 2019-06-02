@@ -69,6 +69,6 @@ void destroyRecords(Record * head){
 	while(itr != NULL){
 		temp = itr;
 		itr = itr->next;
-		free(temp);
+		delete temp; // analogous to free()
 	}
 }

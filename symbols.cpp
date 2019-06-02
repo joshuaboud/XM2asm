@@ -15,7 +15,7 @@
 Symbol * symtbl;
 Symbol * symtbl_end;
 
-Symbol * checkTable(Symbol * head, string & name){
+Symbol * checkTable(Symbol * head, string name){
 	Symbol * itr = head;
 	while(itr != NULL){
 		if (name.compare(itr->name) == 0) // same
@@ -104,7 +104,7 @@ void destroySymTbl(Symbol * head){
 	while(itr != NULL){
 		temp = itr;
 		itr = itr->next;
-		free(temp);
+		delete temp; // analogous to free()
 	}
 }
 

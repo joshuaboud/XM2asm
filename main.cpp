@@ -54,7 +54,7 @@ int main(int argc, char ** argv){
 	
 	// first pass exit actions:
 	listFile << "X-Makina Assembler V 2.0" << endl;
-	listFile << "File opened: \"" << argv[1] << "\"." << endl;
+	listFile << "File opened: \"" << argv[1] << "\"" << endl;
 	listFile << "Time of execution: " << ctime(& timestamp) << endl;
 	printRecords(listFile, records);
 	listFile << endl;

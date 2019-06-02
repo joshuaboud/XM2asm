@@ -22,7 +22,7 @@ using namespace std;
 
 enum Command_type { DIR, INST };
 enum Operand_type { NONE, CR_R, R_R, C_R, C, R, Opt, V, CEX,\
-	 SA, LD, ST };
+	 SA, LD, ST, LDR, STR, BRA, BRA13, V_R };
 
 struct Command {
 	string name;
@@ -33,11 +33,19 @@ struct Command {
 
 extern Command commands[CMD_TBL_SIZE]; // array of instructions & directives
 
-int checkTable(Command (& tbl)[CMD_TBL_SIZE], string & mnemonic);
+int checkTable(Command (& tbl)[CMD_TBL_SIZE], string mnemonic);
 // Returns positional subscript of array element by name,
 // or -1 if element not found. Uses binary search.
 
 bool validValue(string operand);
+bool validValue(uint16_t operand);
+// Returns true if operand passed is a valid value:
+// [ # + (-) + { [0..9] } | $ + (-) + { [0..A] } | ' + char + ' ]
+// Overloaded for checking against symbol - always returns true because
+// if it's a value in the symtbl, it is a valid value.
+
+int extractValue(string operand);
+//	Returns integer value of string passed.
 
 bool validConstant(string operand);
 bool validConstant(uint16_t operand);

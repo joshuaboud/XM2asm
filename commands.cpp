@@ -22,10 +22,10 @@ Command commands[CMD_TBL_SIZE] = {
 	{"AND",		INST,	2,	CR_R},
 	{"AND.B",	INST,	2,	CR_R},
 	{"AND.W",	INST,	2,	CR_R},
-	{"BC",		INST,	1,	V},
-	{"BEQ",		INST,	1,	V},
-	{"BGE", 	INST,	1,	V},
-	{"BHS",		INST,	1,	V},
+	{"BC",		INST,	1,	BRA},
+	{"BEQ",		INST,	1,	BRA},
+	{"BGE", 	INST,	1,	BRA},
+	{"BHS",		INST,	1,	BRA},
 	{"BIC",		INST,	2,	CR_R},
 	{"BIC.B",	INST,	2,	CR_R},
 	{"BIC.W",	INST,	2,	CR_R},
@@ -35,17 +35,17 @@ Command commands[CMD_TBL_SIZE] = {
 	{"BIT",		INST,	2,	CR_R},
 	{"BIT.B",	INST,	2,	CR_R},
 	{"BIT.W",	INST,	2,	CR_R},
-	{"BL",		INST,	1,	V},
-	{"BLO", 	INST,	1,	V},
-	{"BLT", 	INST,	1,	V},
-	{"BN",		INST,	1,	V},
-	{"BNC",		INST,	1,	V},
-	{"BNE", 	INST,	1,	V},
-	{"BNZ", 	INST,	1,	V},
-	{"BRA", 	INST,	1,	V},
+	{"BL",		INST,	1,	BRA13},
+	{"BLO", 	INST,	1,	BRA},
+	{"BLT", 	INST,	1,	BRA},
+	{"BN",		INST,	1,	BRA},
+	{"BNC",		INST,	1,	BRA},
+	{"BNE", 	INST,	1,	BRA},
+	{"BNZ", 	INST,	1,	BRA},
+	{"BRA", 	INST,	1,	BRA},
 	{"BSS",		DIR,	1,	C},
 	{"BYTE",	DIR,	1,	C},
-	{"BZ",		INST,	1,	V},
+	{"BZ",		INST,	1,	BRA},
 	{"CEX",		INST,	3,	CEX}, // special code
 	{"CMP",		INST,	2,	CR_R},
 	{"CMP.B",	INST,	2,	CR_R},
@@ -58,17 +58,17 @@ Command commands[CMD_TBL_SIZE] = {
 	{"LD",		INST,	2,	LD},
 	{"LD.B",	INST,	2,	LD},
 	{"LD.W",	INST,	2,	LD},
-	{"LDR",		INST,	2,	R_R},
-	{"LDR.B",	INST,	2,	R_R},
-	{"LDR.W",	INST,	2,	R_R},
+	{"LDR",		INST,	2,	LDR},
+	{"LDR.B",	INST,	2,	LDR},
+	{"LDR.W",	INST,	2,	LDR},
 	{"MOV",		INST,	2,	CR_R},
 	{"MOV.B",	INST,	2,	CR_R},
 	{"MOV.W",	INST,	2,	CR_R},
-	{"MOVH",	INST,	2,	C_R},
-	{"MOVL",	INST,	2,	C_R},
-	{"MOVLS",	INST,	2,	C_R},
-	{"MOVLZ",	INST,	2,	C_R},
-	{"ORG",		DIR,	1,	C},
+	{"MOVH",	INST,	2,	V_R},
+	{"MOVL",	INST,	2,	V_R},
+	{"MOVLS",	INST,	2,	V_R},
+	{"MOVLZ",	INST,	2,	V_R},
+	{"ORG",		DIR,	1,	V},
 	{"RRC",		INST,	1,	R},
 	{"RRC.B",	INST,	1,	R},
 	{"RRC.W",	INST,	1,	R},
@@ -78,9 +78,9 @@ Command commands[CMD_TBL_SIZE] = {
 	{"ST",		INST,	2,	ST},
 	{"ST.B",	INST,	2,	ST},
 	{"ST.W",	INST,	2,	ST},
-	{"STR",		INST,	2,	R_R},
-	{"STR.B",	INST,	2,	R_R},
-	{"STR.W",	INST,	2,	R_R},
+	{"STR",		INST,	2,	STR},
+	{"STR.B",	INST,	2,	STR},
+	{"STR.W",	INST,	2,	STR},
 	{"SUB",		INST,	2,	CR_R},
 	{"SUB.B",	INST,	2,	CR_R},
 	{"SUB.W",	INST,	2,	CR_R},
@@ -96,7 +96,13 @@ Command commands[CMD_TBL_SIZE] = {
 	{"XOR.B",	INST,	2,	CR_R},
 	{"XOR.W",	INST,	2,	CR_R}};
 
-int checkTable(Command (& tbl)[CMD_TBL_SIZE], string & mnemonic){
+int checkTable(Command (& tbl)[CMD_TBL_SIZE], string mnemonic){
+	// force mnemonic to upper case: examples given by Dr. Hughes have
+	// lower case instructions (?)
+	for(int i = 0; i < (int)mnemonic.length(); i++){
+		mnemonic[i] = toupper(mnemonic[i]);
+	}
+	
 	int low = 0, high = CMD_TBL_SIZE - 1;
 	while(low <= high){
 		int mid = low + (high - low)/ 2;
@@ -108,6 +114,7 @@ int checkTable(Command (& tbl)[CMD_TBL_SIZE], string & mnemonic){
 			low = mid + 1;
 		}
 	}
+	
 	return -1;
 }
 
@@ -132,7 +139,8 @@ bool validValue(string operand){
 		for(; i < (int)operand.length(); i++){ // i = 1 or 2
 			// if digit is NOT (between '0' and '9' or between 'A' and 'F')
 			if(!(('0' <= operand[i] && operand[i] <= '9') || \
-			('A' <= operand[i] && operand[i] <= 'F')))
+			('A' <= operand[i] && operand[i] <= 'F') || \
+			('a' <= operand[i] && operand[i] <= 'f')))
 				return false;
 		}
 		break; // jump to return true
@@ -166,6 +174,26 @@ bool validValue(string operand){
 	}
 	// if we made it here, value is valid.
 	return true;
+}
+
+bool validValue(uint16_t operand){
+	// if in symtbl, always valid
+	return true;
+}
+
+int extractValue(string operand){
+	int value;
+	istringstream ss(operand); // open string as input stream
+	char type = ss.get(); // pop first character, either #, $, '
+	switch(type){
+	case '#':
+		ss >> dec >> value;
+		break;
+	case '$':
+		ss >> hex >> value;
+		break;
+	}
+	return value;
 }
 
 bool validConstant(string operand){

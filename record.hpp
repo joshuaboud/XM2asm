@@ -49,4 +49,7 @@ void printRecords(ostream & os, Record * head);
 void destroyRecords(Record * head);
 // Frees memory taken by record list.
 
+string getNextToken(istringstream & record);
+// Extracts next token out of stream, handles comments and errors
+
 #endif

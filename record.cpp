@@ -41,11 +41,11 @@ string error, int memLoc){
 ostream & operator<<(ostream & os, const Record * rec){
 	os << setw(3) << rec->lineNum;
 	if(rec->memLoc >= 0){
-		os << " 0x" << setfill('0') << setw(4); // print as 0xNNNN padded w/ 0
-		os << hex << rec->memLoc << dec << " "; // print formatted hex
+		os << "   0x" << setfill('0') << setw(4); // print as 0xNNNN padded w/ 0
+		os << hex << rec->memLoc << dec << " \t"; // print formatted hex
 		os << setfill(' '); // clear setw fill
 	}else{
-		os << "        ";
+		os << "          \t";
 	}
 	os << rec->record;
 	(rec->error.empty())? os << endl : os << "\t!!! " << rec->error << endl;
@@ -71,4 +71,23 @@ void destroyRecords(Record * head){
 		itr = itr->next;
 		delete temp; // analogous to free()
 	}
+}
+
+string getNextToken(istringstream & record){
+	string token;
+	
+	// to handle ' ' (space):
+	record >> std::ws; // eat whitespace to peek at '
+	if(record.peek() == '\''){ // next token will be char
+		getline(record, token, ';'); // grab until ';' or newline
+		return token;
+	}
+	
+	record >> token;
+	if(token.empty() || token[0] == ';'){
+		// end of record
+		record.clear(); // clear error bits to allow continued reading
+		return "";
+	}
+	return token;
 }

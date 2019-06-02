@@ -78,8 +78,8 @@ void firstPassStateMachine(ifstream & source){
 void checkFirstToken(istringstream & record, string & token, int & tblSub){
 	// Grabs first token from record, decides what state to jump to
 	// after identifying token. If errors are encountered, the whole record
-	// is saved with an error description and the state moves onto the next
-	// record.
+	// is saved with an error description and the state machine moves onto
+	// the next record.
 	token = getNextToken(record);
 	if(record.str()[0] == ';'){ // just a comment
 		pushRecord(records, lineNum, record.str());
@@ -1187,7 +1187,7 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 			pushSymbol(symtbl, temp);
 		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in second operand.";
+			err = "ERROR: Invalid label in second operand." + operand;
 			pushRecord(records, lineNum, record.str(), err, memLoc);
 			fpstate = CHECK_FIRST_TOKEN;
 			return;
@@ -1217,27 +1217,13 @@ void checkDir(istringstream & record, string & token, int & tblSub, uint16_t & m
 	string operand;
 	int value;
 	Symbol * sym;
-	string err;
+	Symbol * lblSym; // for EQU to copy labels
+	string err = "";
 	if(commands[tblSub].name == "ALIGN"){
 		if(memLoc%2 != 0){
 			// memLoc odd, increment by 1
 			memLoc++;
 		}
-		if((operand = getOperand(token)) != ""){ // extraneous operand(s)
-			err = "ERROR: ALIGN takes no operands.";
-			pushRecord(records, lineNum, record.str(), err);
-			fpstate = CHECK_FIRST_TOKEN;
-			return;
-		}
-		if(!token.empty()){ // operands followed by non-comment garbage
-			err = "ERROR: Directive followed by non-comment garbage.";
-			pushRecord(records, lineNum, record.str(), err);
-			fpstate = CHECK_FIRST_TOKEN;
-			return;
-		}
-		pushRecord(records, lineNum, record.str());
-		fpstate = CHECK_FIRST_TOKEN;
-		return;
 	}else if(commands[tblSub].name == "BSS"){
 		// if a label is present, it will already be assiciated with
 		// block from checkFirstToken().
@@ -1251,78 +1237,126 @@ void checkDir(istringstream & record, string & token, int & tblSub, uint16_t & m
 			memLoc += value;
 		}else{ // invalid label, unk, reg, invalid value, or negative
 			err = "ERROR: Operand must be positive value of BSS size.";
-			pushRecord(records, lineNum, record.str(), err);
-			fpstate = CHECK_FIRST_TOKEN;
-			return;
 		}
-		if((operand = getOperand(token)) != ""){ // extraneous operand(s)
-			err = "ERROR: Directive only takes one operand.";
-			pushRecord(records, lineNum, record.str(), err, memLoc);
-			fpstate = CHECK_FIRST_TOKEN;
-			return;
-		}
-		if(!token.empty()){ // operands followed by non-comment garbage
-			err = "ERROR: Operand followed by non-comment garbage.";
-			pushRecord(records, lineNum, record.str(), err, memLoc);
-			fpstate = CHECK_FIRST_TOKEN;
-			return;
-		}
-		pushRecord(records, lineNum, record.str());
-		fpstate = CHECK_FIRST_TOKEN;
-		return;
 	}else if(commands[tblSub].name == "BYTE"){
 		operand = getOperand(token);
 		if(validValue(operand) && !(extractValue(operand) & 0xFF00)){
 			// valid value and 8 bits or less (no bits set higher than bit 7)
-			memLoc += 1; // increase counter by one byte
+			//memLoc += 1; // increase counter by one byte // moved to end of BYTE
 		}else if((sym = checkTable(symtbl, operand)) != NULL &&\
 		sym->type == LBL && !(sym->value & 0xFF00)){
 			// same idea, no bits set above bit 7
-			memLoc += 1; // increase counter by one byte
+			//memLoc += 1; // increase counter by one byte // ``
 		}else{ // invalid label, unk, reg, invalid value
 			err = "ERROR: Operand must be 8 bit value.";
-			pushRecord(records, lineNum, record.str(), err);
-			fpstate = CHECK_FIRST_TOKEN;
-			return;
 		}
-		if((operand = getOperand(token)) != ""){ // extraneous operand(s)
-			err = "ERROR: Directive only takes one operand.";
-			pushRecord(records, lineNum, record.str(), err, memLoc);
-			fpstate = CHECK_FIRST_TOKEN;
-			return;
+		memLoc += 1; // increment memLoc regardless to not cause false errors
+	}else if(commands[tblSub].name == "END"){
+		// this has optional operand
+		operand = getOperand(token);
+		if(!operand.empty()){
+			// has operand: make sure valid
+			sym = checkTable(symtbl, operand);
+			err = ""; // ensure err is empty
+			if(sym != NULL && (sym->type != LBL || sym->value < 0)){
+				// if operand is in symbol table, and either it's not a
+				// label or not positive
+				err = "ERROR: Operand after END must refer to label or mem location.";
+			}else if(sym != NULL && sym->type == LBL && sym->value > 0){
+				// if operand is in symbol table, sym type is a label,
+				// and value is positive
+				START = sym->value; // set starting point to label's value
+			}else if(sym == NULL && \
+			(!validValue(operand) || extractValue(operand) < 0)){
+				// operand not a symbol and
+				// if operand is not a valid constant or if operand is a
+				// negative value
+				err = "ERROR: Operand after END must be valid memory location.";
+			}else if(sym == NULL && validConstant(operand) && \
+			((value = extractValue(operand)) > 0)){
+				// if operand is not a symbol, is a valid value,
+				// and the value is positive
+				START = value;
+			}
 		}
-		if(!token.empty()){ // operands followed by non-comment garbage
-			err = "ERROR: Operand followed by non-comment garbage.";
-			pushRecord(records, lineNum, record.str(), err, memLoc);
-			fpstate = CHECK_FIRST_TOKEN;
-			return;
+		// finish first pass, ignoring any subsequent records
+		END_OF_FIRST_PASS = true;
+	}else if(commands[tblSub].name == "EQU"){
+		operand = getOperand(token);
+		if(operand.empty()){
+			// no operand
+			err = "ERROR: Directive EQU requires an operand.";
 		}
-		pushRecord(records, lineNum, record.str());
-		fpstate = CHECK_FIRST_TOKEN;
-		return;
-	}else if(commands[tblSub].name == ""){
-		
-	}else if(commands[tblSub].name == ""){
-		
+		if(label.empty()){
+			// no label passed
+			err = "ERROR: Directive EQU requires a label.";
+		}else{ // label provided
+			if((sym = checkTable(symtbl, operand)) != NULL && \
+			sym->type != UNK){
+				// copy symbol with new name
+				// modify value of label
+				lblSym = checkTable(symtbl, label); // grab Symbol ptr
+				lblSym->type = sym->type; // copy type
+				lblSym->value = sym->value; // copy value
+			}else if(sym != NULL && sym->type == UNK){
+				err = "ERROR: Cannot equate to unkown label.";
+			}else if(sym == NULL && validValue(operand)){
+				// operand is valid value
+				// modify label with operand as value
+				lblSym = checkTable(symtbl, label); // grab Symbol ptr
+				lblSym->type = LBL; // copy type
+				lblSym->value = extractValue(operand); // copy value
+			}else{
+				// operand must be invalid label or value
+				err = "ERROR: Operand must be valid symbol or value.";
+			}
+		}
+	}else if(commands[tblSub].name == "ORG"){
+		operand = getOperand(token);
+		if(operand.empty()){
+			// no operand
+			err = "ERROR: Directive ORG requires an operand.";
+		}
+		if((sym = checkTable(symtbl, operand)) != NULL && sym->type != LBL){
+			// in symbol table but not a label
+			err = "ERROR: Operand cannot be register or unkown symbol.";
+		}else if(sym != NULL && sym->type == LBL && sym->value < 0){
+			// in symbol table and label, but negative
+			err = "ERROR: ORG requires positive value.";
+		}else if(sym == NULL && \
+		(!validValue(operand) || extractValue(operand) < 0)){
+			// not in symbol table, but is either not a valid value
+			// or is negative
+			err = "ERROR: ORG requires positive value.";
+		}else{
+			// update mem location
+			memLoc = extractValue(operand);
+		}
+	}else if(commands[tblSub].name == "WORD"){
+		if(memLoc % 2 != 0){
+			// 16 bit value should fall on even byte
+			err = "ERROR: 16 bit word should fall on even byte. Use ALIGN.";
+		}
+		operand = getOperand(token);
+		if(validValue(operand) && !(extractValue(operand) & 0xFFFF0000)){
+			// valid value and 16 bits or less (no bits set higher than bit 15)
+			//memLoc += 2; // increase counter by two bytes // moved to end of WORD
+		}else if((sym = checkTable(symtbl, operand)) != NULL &&\
+		sym->type == LBL && !(sym->value & 0xFFFF0000)){
+			// same idea, no bits set above bit 15
+			//memLoc += 2; // increase counter by two bytes // ``
+		}else{ // invalid label, unk, reg, invalid value
+			err = "ERROR: Operand must be 16 bit value.";
+		}
+		memLoc += 2; // increment memLoc regardless to not cause false errors
 	}
+	if((operand = getOperand(token)) != ""){ // extraneous operand(s)
+		err = "ERROR: Too many operand(s).";
+	}
+	if(!token.empty()){ // operands followed by non-comment garbage
+		err = "ERROR: Statement followed by non-comment garbage.";
+	}
+	pushRecord(records, lineNum, record.str(), err);
+	fpstate = CHECK_FIRST_TOKEN;
+	return;
 }
-
-string getNextToken(istringstream & record){
-	string token;
-	
-	// to handle ' ' (space):
-	record >> std::ws; // eat whitespace to peek at '
-	if(record.peek() == '\''){ // next token will be char
-		getline(record, token, ';'); // grab until ';' or newline
-		return token;
-	}
-	
-	record >> token;
-	if(token.empty() || token[0] == ';'){
-		// end of record
-		record.clear(); // clear error bits to allow continued reading
-		return "";
-	}
-	return token;
-}
-

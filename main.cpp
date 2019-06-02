@@ -11,6 +11,8 @@
 
 #include "main.hpp"
 
+unsigned int START = 0; // Starting memory location for loader
+
 int main(int argc, char ** argv){
 	// timestamp for list file
 	time_t timestamp = chrono::system_clock::to_time_t(chrono::system_clock::now());
@@ -53,12 +55,14 @@ int main(int argc, char ** argv){
 	firstPassStateMachine(source);
 	
 	// first pass exit actions:
+	// create list file
 	listFile << "X-Makina Assembler V 2.0" << endl;
 	listFile << "File opened: \"" << argv[1] << "\"" << endl;
 	listFile << "Time of execution: " << ctime(& timestamp) << endl;
 	printRecords(listFile, records);
 	listFile << endl;
 	printSymTbl(listFile, symtbl);
+	listFile << "Starting memory location: " << START << endl;
 	if(ERROR_FLAG){
 		listFile << "Errors were detected. Stopping after first pass." << endl;
 	}

@@ -23,10 +23,9 @@ using namespace std;
 
 enum FPState { CHECK_FIRST_TOKEN, CHECK_INST_DIR, CHECK_DIR, \
 	CHECK_INST };	//	state machine control for first pass
-	
-extern FPState fpstate;
 
-extern bool END_OF_FIRST_PASS;
+extern unsigned int START; // starting memory location for loader
+// defined in main as 0, modified by END directive
 
 void firstPassStateMachine(ifstream & source);
 // enter state machine
@@ -44,9 +43,5 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 void checkDir(istringstream & record, string & token, int & tblSub, uint16_t & memLoc, string label);
 // Verifies operands of directive and adds to list of records, modifies location counter
 // for applicable directives.
-
-string getNextToken(istringstream & record);
-// Extracts next token out of stream, handles comments and errors
-
 
 #endif

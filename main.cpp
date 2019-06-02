@@ -7,7 +7,8 @@
  * Last Modified: 2019-06-01
  */
 
-#define DEBUG
+// comment following line to send output to list file
+//#define DEBUG
 
 #include "main.hpp"
 
@@ -62,7 +63,7 @@ int main(int argc, char ** argv){
 	printRecords(listFile, records);
 	listFile << endl;
 	printSymTbl(listFile, symtbl);
-	listFile << "Starting memory location: " << START << endl;
+	listFile << "Starting memory location: 0x" << hex << START << endl;
 	if(ERROR_FLAG){
 		listFile << "Errors were detected. Stopping after first pass." << endl;
 	}

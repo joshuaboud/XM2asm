@@ -39,9 +39,14 @@ void checkInstOrDir(istringstream & record, string & token, int & tblSub);
 
 void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & memLoc);
 // Verifies operands of instruction and adds to list of records with location counter.
+// Starts off with empty error string. If an error is detected, the string is
+// updated to contain a description of the error. At the end of the function,
+// the record is pushed into the list of records. The error flag is set in the
+// pushRecord() function based on whether or not the error string is empty.
 
 void checkDir(istringstream & record, string & token, int & tblSub, uint16_t & memLoc, string label);
-// Verifies operands of directive and adds to list of records, modifies location counter
-// for applicable directives.
+// Executes directive, reports any errors, and adds to list of records. 
+// Modifies location counter for applicable directives.The error flag is set in the
+// pushRecord() function based on whether or not the error string is empty.
 
 #endif

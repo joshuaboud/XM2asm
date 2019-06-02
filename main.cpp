@@ -7,6 +7,7 @@
  * Last Modified: 2019-06-01
  */
 
+// comment following line to send output to list file
 #define DEBUG
 
 #include "main.hpp"

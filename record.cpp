@@ -5,14 +5,14 @@
  * Purpose: Defines functions to be used with records and the record
  * 			linked list, as well as defines the beginning and end of the
  * 			record linked list.
- * Last Modified: 2019-05-31
+ * Last Modified: 2019-06-02
  */
 
 #include "record.hpp"
 
 // holds all records for printing into list file:
-Record * records;
-Record * records_end;
+Record * records; // head of record list
+Record * records_end; // rear of record list for printing FIFO
 
 void initRecords(Record *& head){
 	head = NULL;
@@ -52,7 +52,7 @@ ostream & operator<<(ostream & os, const Record * rec){
 	return os;
 }
 
-void printRecords(ostream & os, Record * head){
+void printRecords(ostream & os){
 	Record * itr = records_end;
 	while(itr != NULL){
 		os << itr;

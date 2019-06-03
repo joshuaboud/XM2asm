@@ -2,10 +2,10 @@
  * Author: Josh Boudreau
  * School: Dalhousie University
  * Course: ECED 3403 - Computer Architecture
- * Purpose: Necessary includes and definitions for commands.cpp.
+ * Purpose: Necessary includes and declarations for commands.cpp.
  * 			Include this file to access the global command table
  * 			and its related functions.
- * Last Modified: 2019-05-31
+ * Last Modified: 2019-06-02
  */
 
 #ifndef COMMANDS_H
@@ -56,5 +56,8 @@ bool validConstant(uint16_t operand);
 
 string getOperand(string & operands);
 // Extracts operands delimited by commas until end of record is reached.
+// Erases extracted operand from string of operands, so each time it is
+// called, the next operand will be extracted until the end of the string
+// is reached, similar to strtok() from the C standard library.
 
 #endif

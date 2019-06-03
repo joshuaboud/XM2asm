@@ -5,11 +5,13 @@
  * Purpose: Defines list of commands (instructions + directives), along
  * 			with definitions of functions to be used with instructions
  * 			or directives.
- * Last Modified: 2019-06-01
+ * Last Modified: 2019-06-02
  */
 
 #include "commands.hpp"
 
+// list of every instruction and directive, alphabetical order for
+// quick binary search capabilities.
 Command commands[CMD_TBL_SIZE] = {
 //	Mnemonic  Ins/Dir OpCnt	OpType
 	{"ADD", 	INST,	2,	CR_R},
@@ -103,24 +105,29 @@ int checkTable(Command (& tbl)[CMD_TBL_SIZE], string mnemonic){
 		mnemonic[i] = toupper(mnemonic[i]);
 	}
 	
+	// binary search:
 	int low = 0, high = CMD_TBL_SIZE - 1;
 	while(low <= high){
 		int mid = low + (high - low)/ 2;
-		if (strcmp(mnemonic.c_str(), tbl[mid].name.c_str()) == 0){ // mnem same
+		if (strcmp(mnemonic.c_str(), tbl[mid].name.c_str()) == 0){
+			// mnem same
 			return mid;
-		} else if (strcmp(mnemonic.c_str(), tbl[mid].name.c_str()) < 0){ // mnem is lower
+		} else if (strcmp(mnemonic.c_str(), tbl[mid].name.c_str()) < 0){
+			// mnem is lower
 			high = mid - 1;
-		} else if (strcmp(mnemonic.c_str(), tbl[mid].name.c_str()) > 0){ // mnem is higher
+		} else if (strcmp(mnemonic.c_str(), tbl[mid].name.c_str()) > 0){
+			// mnem is higher
 			low = mid + 1;
 		}
 	}
-	
+	// if not found, return -1
 	return -1;
 }
 
 bool validValue(string operand){
-	int i = 1;
-	char ch;
+	int i = 1; // cannot declare var inside switch, start at 1 to
+	// skip the '#' or '$'
+	char ch; // temp char variable
 	
 	// for escaped chars:
 	char escapees[8] = {'b','t','n','r','0','\\','\'','\"'};
@@ -161,7 +168,7 @@ bool validValue(string operand){
 					if(ch == escapees[i])
 						return true; // char is valid escape char
 				}
-				// if we make it out of the for loop,
+				// if we make it past the for loop,
 				// char is not a valid escaped char
 				return false;
 			}

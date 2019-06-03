@@ -2,12 +2,13 @@
  * Author: Josh Boudreau
  * School: Dalhousie University
  * Course: ECED 3403 - Computer Architecture
- * Purpose: Open source module, list file, initialize global tables, and
- * call state machines for first and second pass
- * Last Modified: 2019-06-01
+ * Purpose: Open the source module, list file, initialize global tables,
+ * and call state machines for first and second pass. Create list file
+ * after first pass completes.
+ * Last Modified: 2019-06-02
  */
 
-// comment following line to send output to list file
+// uncomment following line to send output stdout
 //#define DEBUG
 
 #include "main.hpp"
@@ -60,9 +61,9 @@ int main(int argc, char ** argv){
 	listFile << "X-Makina Assembler V 2.0" << endl;
 	listFile << "File opened: \"" << argv[1] << "\"" << endl;
 	listFile << "Time of execution: " << ctime(& timestamp) << endl;
-	printRecords(listFile, records);
+	printRecords(listFile);
 	listFile << endl;
-	printSymTbl(listFile, symtbl);
+	printSymTbl(listFile);
 	listFile << "Starting memory location: 0x" << hex << START << endl;
 	if(ERROR_FLAG){
 		listFile << "Errors were detected. Stopping after first pass." << endl;

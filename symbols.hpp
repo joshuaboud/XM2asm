@@ -2,9 +2,9 @@
  * Author: Josh Boudreau
  * School: Dalhousie University
  * Course: ECED 3403 - Computer Architecture
- * Purpose: Necessary includes and definitions for symbols.cpp.
+ * Purpose: Necessary includes and declarations for symbols.cpp.
  * 			Include this file to access the global symbol table.
- * Last Modified: 2019-05-30
+ * Last Modified: 2019-06-02
  */
 
 #ifndef SYMBOLS_H
@@ -19,7 +19,7 @@ using namespace std;
 
 enum Symbol_type { LBL, REG, UNK };
 
-struct Symbol {
+struct Symbol { // doubly linked list node
 	string name;
 	Symbol_type type;
 	uint16_t value;
@@ -42,20 +42,23 @@ int validLabel(string str);
 // alphanumeric is [ alphabetic | 0 - 9 ].
 // Returns 2 if alphabetic + 0{alphanumeric}30 + .[B|W],
 // which is not a valid label, but still a valid instruction.
+// Returns 0 if str is not a valid label.
 
 void initSymTbl(Symbol *& head);
 // Initializes symtbl.
 
 void pushSymbol(Symbol *& head, Symbol & sym);
-// Pushed symbol pointer to head of symtbl.
+// Creates symbol pointer from sym, pushes to head of symtbl linked list,
+// replacing head node.
 
-void printSymTbl(ostream & os, Symbol * head);
-// Prints symbol table to output stream.
+void printSymTbl(ostream & os);
+// Prints symbol table to output stream from back to front. Back of
+// table is global Symbol pointer symtbl_end.
 
 void destroySymTbl(Symbol * head);
 // Frees memory taken by symtbl.
 
 ostream & operator<<(ostream & os, Symbol * sym);
-// Prints fields of symbol to output stream.
+// Prints fields of symbol struct to output stream .
 
 #endif

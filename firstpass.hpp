@@ -5,7 +5,7 @@
  * Purpose: Necessary includes and declarations for firstpass.cpp.
  * 			Inlude this file to call the first pass state machine or
  * 			change the state variable.
- * Last Modified: 2019-05-30
+ * Last Modified: 2019-06-02
  */
 
 #ifndef FIRSTPASS_H
@@ -31,22 +31,24 @@ void firstPassStateMachine(ifstream & source);
 // enter state machine
 
 void checkFirstToken(istringstream & record, string & token, int & tblSub);
-// reads first token of record, decide state change
+// Reads first token of record, decide state change after identifying token
+// as a label, an instruction, a directive, a comment, or an error.
 
 void checkInstOrDir(istringstream & record, string & token, int & tblSub);
-// Retrieves table index of inst or dir, changes state to process inst
-// or dir. If not found, push error and return.
+// Receives table index of inst or dir, changes state to process inst
+// or dir. If not found, push error for label after label and return.
 
 void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & memLoc);
-// Verifies operands of instruction and adds to list of records with location counter.
+// Verifies operand(s) of instruction and adds to list of records with location counter.
 // Starts off with empty error string. If an error is detected, the string is
 // updated to contain a description of the error. At the end of the function,
 // the record is pushed into the list of records. The error flag is set in the
 // pushRecord() function based on whether or not the error string is empty.
 
 void checkDir(istringstream & record, string & token, int & tblSub, uint16_t & memLoc, string label);
-// Executes directive, reports any errors, and adds to list of records. 
-// Modifies location counter for applicable directives.The error flag is set in the
-// pushRecord() function based on whether or not the error string is empty.
+// Executes directive, reports any errors in operands or otherwise, and 
+// adds to list of records. Modifies location counter for applicable directives.
+// The error flag is set in the pushRecord() function based on whether or 
+// not the error string is empty.
 
 #endif

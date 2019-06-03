@@ -2,9 +2,9 @@
  * Author: Josh Boudreau
  * School: Dalhousie University
  * Course: ECED 3403 - Computer Architecture
- * Purpose: Necessary includes and definitions for record.cpp.
+ * Purpose: Necessary includes and declarations for record.cpp.
  * 			Include this file to access the global record list.
- * Last Modified: 2019-05-31
+ * Last Modified: 2019-06-02
  */
 
 #ifndef RECORD_H
@@ -17,7 +17,7 @@ using namespace std;
 
 #include <stdio.h> // for printing hex mem location
 
-struct Record {
+struct Record { // doubly linked list node
 	int lineNum;
 	int memLoc;
 	string record;
@@ -43,8 +43,8 @@ string error = "", int memLoc = -1);
 ostream & operator<<(ostream & os, const Record * rec);
 // Prints fields of record on output stream.
 
-void printRecords(ostream & os, Record * head);
-// Iterates over list of records, printing each one.
+void printRecords(ostream & os);
+// Iterates over list of records, printing each one from back to front.
 
 void destroyRecords(Record * head);
 // Frees memory taken by record list.

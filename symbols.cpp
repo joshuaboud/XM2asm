@@ -5,17 +5,18 @@
  * Purpose: Defines functions to be used with symbols and the symbol
  * 			table, as well as defines the beginning and end of the
  * 			symbol table linked list.
- * Last Modified: 2019-05-31
+ * Last Modified: 2019-06-02
  */
 
 #include "symbols.hpp"
 
 // Globals
 
-Symbol * symtbl;
-Symbol * symtbl_end;
+Symbol * symtbl; // head of linked list of symbols
+Symbol * symtbl_end; // hold end to allow first in first out printing
 
 Symbol * checkTable(Symbol * head, string name){
+	// iteratively searches for symbol by name, returns ptr to symbol
 	Symbol * itr = head;
 	while(itr != NULL){
 		if (name.compare(itr->name) == 0) // same
@@ -80,7 +81,7 @@ void pushSymbol(Symbol *& head, Symbol & sym){
 	head = ptr;
 }
 
-void printSymTbl(ostream & os, Symbol * head){
+void printSymTbl(ostream & os){
 	Symbol * itr = symtbl_end; // start at bottom
 	if(itr == NULL){
 		os << "Symtbl empty!" << endl;

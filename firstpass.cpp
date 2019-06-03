@@ -6,20 +6,22 @@
  * 			file stream passed to it, builds a symbol table, and verifies
  * 			that there are no errors. All state changes are controlled
  * 			in this file.
- * Last Modified: 2019-06-01
+ * Last Modified: 2019-06-02
  */
 
 #include "firstpass.hpp"
 
 // Globals
 
-FPState fpstate;
+FPState fpstate; // state variable
 
-bool END_OF_FIRST_PASS;
-bool ERROR_FLAG;
+bool END_OF_FIRST_PASS; // signals stop of state machine
+bool ERROR_FLAG; // is set when pushRecord() is passed a non-empty error
+// message. When the first pass is complete, the assembler will not
+// continue to the second pass if this flag is set.
 
-int lineNum;
-uint16_t memLoc;	//	line number counter and memory location
+int lineNum; // line number of source module
+uint16_t memLoc; // memory location counter
 
 void firstPassStateMachine(ifstream & source){
 	// Initializes and controls state functions of state machine
@@ -29,11 +31,11 @@ void firstPassStateMachine(ifstream & source){
 	lineNum = 0;
 	memLoc = 0;
 	
-	string record;
-	istringstream recordStream;
-	string token;
+	string record; // record of source module is read into this
+	istringstream recordStream; // converted to stream to extract tokens
+	string token; // token of record, space delimited
 	
-	string label; // hold label for directive
+	string label; // hold label for directive, used to pass label for EQU
 	
 	int tblSub;	//	command table subscript
 	

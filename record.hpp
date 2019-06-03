@@ -38,7 +38,8 @@ void pushRecord(Record *& head, int lineNum, string rec, \
 string error = "", int memLoc = -1);
 // Pushes record ptr to head of record list, if records_end is still
 // pointing to NULL, points it to the new head to keep track of the
-// bottom of the list.
+// bottom of the list. If error is not empty, then the global error flag
+// is set.
 
 ostream & operator<<(ostream & os, const Record * rec);
 // Prints fields of record on output stream.

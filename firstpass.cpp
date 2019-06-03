@@ -6,7 +6,7 @@
  * 			file stream passed to it, builds a symbol table, and verifies
  * 			that there are no errors. All state changes are controlled
  * 			in this file.
- * Last Modified: 2019-06-02
+ * Last Modified: 2019-06-03
  */
 
 #include "firstpass.hpp"
@@ -253,44 +253,6 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 		operand = getOperand(token);
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type == LBL){
 			// if operand is not a register or unkown
-			err = "ERROR: Instruction takes register as second operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){
-			// add label to symtbl as unkown type
-			Symbol temp;
-			temp.name = operand;
-			temp.type = UNK;
-			temp.value = 0;
-			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
-			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in second operand.";
-		}
-		break;
-	case C_R:
-		// first operand
-		if((sym = checkTable(symtbl, operand)) == NULL && !validConstant(operand)){
-			// if operand is not a label/UNK and not a valid constant
-			err = "ERROR: Instruction takes constant as first operand.";
-		}else if(sym != NULL && sym->type == REG){
-			// operand is a register
-			err = "ERROR: Instruction takes constant as first operand.";
-		}else if(sym != NULL && sym->type == LBL){ // known label
-			if(!validConstant(sym->value)){ // check that value is const
-				err = "ERROR: Instruction takes constant as first operand.";
-			}
-		}else if(sym == NULL && validLabel(operand) == 1){ // valid forward ref
-			// add label to symtbl as unkown type
-			Symbol temp;
-			temp.name = operand;
-			temp.type = UNK;
-			temp.value = 0;
-			pushSymbol(symtbl, temp);
-		}
-		// first operand is either constant or label
-		// verify second operand
-		operand = getOperand(token);
-		if((sym = checkTable(symtbl, operand)) != NULL && sym->type != REG){
-			// if operand is not a register
 			err = "ERROR: Instruction takes register as second operand.";
 		}else if(sym == NULL && validLabel(operand) == 1){
 			// add label to symtbl as unkown type

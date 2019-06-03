@@ -5,7 +5,7 @@
  * Purpose: Necessary includes and declarations for commands.cpp.
  * 			Include this file to access the global command table
  * 			and its related functions.
- * Last Modified: 2019-06-02
+ * Last Modified: 2019-06-03
  */
 
 #ifndef COMMANDS_H
@@ -21,7 +21,7 @@ using namespace std;
 #define CMD_TBL_SIZE 83
 
 enum Command_type { DIR, INST };
-enum Operand_type { NONE, CR_R, R_R, C_R, C, R, Opt, V, CEX,\
+enum Operand_type { NONE, CR_R, R_R, C, R, Opt, V, CEX,\
 	 SA, LD, ST, LDR, STR, BRA, BRA13, V_R };
 
 struct Command {

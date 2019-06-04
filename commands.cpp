@@ -5,7 +5,7 @@
  * Purpose: Defines list of commands (instructions + directives), along
  * 			with definitions of functions to be used with instructions
  * 			or directives.
- * Last Modified: 2019-06-02
+ * Last Modified: 2019-06-03
  */
 
 #include "commands.hpp"
@@ -192,12 +192,38 @@ int extractValue(string operand){
 	int value;
 	istringstream ss(operand); // open string as input stream
 	char type = ss.get(); // pop first character, either #, $, '
+	char escapees[8][2] =  {{'b','\b'},
+							{'t','\t'},
+							{'n','\n'},
+							{'r','\r'},
+							{'0','\0'},
+							{'\\','\\'},
+							{'\'','\''},
+							{'\"','\"'}};
 	switch(type){
 	case '#':
 		ss >> dec >> value;
 		break;
 	case '$':
 		ss >> hex >> value;
+		break;
+	case '\'':
+		// replace operand with just what's in quotes
+		operand = operand.substr(1,operand.length()-2); // cut off 's
+		switch(operand.length()){
+		case 1: // not escaped
+			value = (int)operand.c_str()[0]; // get char value as int
+			break;
+		case 2: // escaped
+			for(int i = 0; i < 8; i++){
+				if(operand[1] == escapees[i][0]){
+					// find operand in escapees list
+					value = (int)escapees[i][1];
+					break;
+				}
+			}
+			break;
+		}
 		break;
 	}
 	return value;

@@ -286,4 +286,3 @@ string getOperand(string & operands){
 	
 	return operand;
 }
-

@@ -14,6 +14,7 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 using namespace std;
 
 #include <string.h> // for strcmp

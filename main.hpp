@@ -18,6 +18,7 @@
 #include "firstpass.hpp"	//	first pass state machine
 #include "symbols.hpp"
 #include "record.hpp"
+#include "secondpass.hpp"
 
 extern unsigned int START; // starting memory location for loader
 // modified by END directive

@@ -30,10 +30,10 @@ ErrorEnum error, int tblSub, int memLoc, unsigned short opcode){
 	temp->record = rec;
 	temp->error = error;
 	temp->opcode = opcode;
-	temp->next = head;
-	temp->prev = NULL;
+	temp->prev = head;
+	temp->next = NULL;
 	if(head != NULL) // guard seg fault
-		head->prev = temp;
+		head->next = temp;
 	head = temp;
 	if(records_end == NULL){
 		records_end = head; // init list end pointer
@@ -65,7 +65,7 @@ void printRecords(std::ostream & os){
 	Record * itr = records_end;
 	while(itr != NULL){
 		os << itr;
-		itr = itr->prev;
+		itr = itr->next;
 	}
 }
 
@@ -77,7 +77,7 @@ void destroyRecords(Record * head){
 	}
 	while(itr != NULL){
 		temp = itr;
-		itr = itr->next;
+		itr = itr->prev;
 		delete temp; // analogous to free()
 	}
 }

@@ -3,8 +3,7 @@
  * School: Dalhousie University
  * Course: ECED 3403 - Computer Architecture
  * Purpose: Necessary includes and declarations for firstpass.cpp.
- * 			Inlude this file to call the first pass state machine or
- * 			change the state variable.
+ * 			Inlude this file to call the first pass state machine.
  * Last Modified: 2019-06-03
  */
 

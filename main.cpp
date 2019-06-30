@@ -74,6 +74,7 @@ int main(int argc, char ** argv){
 		std::cout << "First pass finished with no errors." << std::endl;
 		listFile << "First pass finished with no errors." << std::endl;
 		// call second pass here
+		secondPassStateMachine();
 	}else{
 		// finished with errors
 		std::cout << "First pass finished with one or more errors." << std::endl;

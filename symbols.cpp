@@ -10,12 +10,19 @@
 
 #include "symbols.hpp"
 
+#define MAX_LBL_LENGTH 31
+
+#define ALPHABETIC(x) (('A' <= x && x <= 'Z') || \
+('a' <= x && x <= 'z') || (x == '_'))
+		
+#define ALPHANUMERIC(x) (ALPHABETIC(x) || ('0' <= x && x <= '9'))
+
 // Globals
 
 Symbol * symtbl; // head of linked list of symbols
 Symbol * symtbl_end; // hold end to allow first in first out printing
 
-Symbol * checkTable(Symbol * head, string name){
+Symbol * checkTable(Symbol * head, std::string name){
 	// iteratively searches for symbol by name, returns ptr to symbol
 	Symbol * itr = head;
 	while(itr != NULL){
@@ -26,28 +33,20 @@ Symbol * checkTable(Symbol * head, string name){
 	return itr; // if not found, will return NULL ptr
 }
 
-int validLabel(string str){
-	int flag = 0; // 0 false, 1 true, 2 special case for INST.[B|W]
-	if(str.length() > 31)
-		return flag;
+bool validLabel(std::string str){
+	if(str.length() > MAX_LBL_LENGTH)
+		return false;
 	// if first letter is NOT between 'A' and 'Z' or between 'a' and 'z'
-	if(!(('A' <= str[0] && str[0] <= 'Z') || ('a' <= str[0] && str[0] <= 'z')))
-		return flag;
+	if(!ALPHABETIC(str[0]))
+		return false;
 	// check if rest of letters are alphanumeric or '_'
 	for(char i : str){
-		if(!(('A' <= i && i <= 'Z') || ('a' <= i && i <= 'z') || \
-		('0' <= i && i <= '9') || (i == '_') || (i == '.'))){
-			flag = 0;
-			return flag;
-		}
-		if(i == '.'){ // special case of valid INST.[B|W], not valid label
-			flag = 2;
+		if(!ALPHANUMERIC(i)){
+			return false;
 		}
 	}
 	// if we made it here, it's a valid label or instruction
-	if(flag != 2) // if not special case above,
-		flag = 1; // return valid label
-	return flag;
+	return true;
 }
 
 void initSymTbl(Symbol *& head){
@@ -81,15 +80,15 @@ void pushSymbol(Symbol *& head, Symbol & sym){
 	head = ptr;
 }
 
-void printSymTbl(ostream & os){
+void printSymTbl(std::ostream & os){
 	Symbol * itr = symtbl_end; // start at bottom
 	if(itr == NULL){
-		os << "Symtbl empty!" << endl;
+		os << "Symtbl empty!" << std::endl;
 		return;
 	}
 	
-	os << setw(28) << "" << "      SYMBOL TABLE" << endl;
-	os << setw(28) << "" << "------------------------" << endl;
+	os << std::setw(28) << "" << "      SYMBOL TABLE" << std::endl;
+	os << std::setw(28) << "" << "------------------------" << std::endl;
 	while(itr != NULL){
 		os << itr;
 		itr = itr->prev; // move towards top
@@ -109,9 +108,9 @@ void destroySymTbl(Symbol * head){
 	}
 }
 
-ostream & operator<<(ostream & os, Symbol * sym){
-	os << setw(31) << sym->name << " | ";
-	os << setw(3);
+std::ostream & operator<<(std::ostream & os, Symbol * sym){
+	os << std::setw(31) << sym->name << " | ";
+	os << std::setw(3);
 	switch(sym->type){
 	case REG:
 		os << "REG";
@@ -124,10 +123,10 @@ ostream & operator<<(ostream & os, Symbol * sym){
 		ERROR_FLAG = true;
 		break;
 	}
-	os << " | " << setw(6) << sym->value; // print as dec
-	os << " (0x" << hex << sym->value << dec << ")"; // print as hex
+	os << " | " << std::setw(6) << sym->value; // print as dec
+	os << " (0x" << std::hex << sym->value << std::dec << ")"; // print as hex
 	if(sym->type == UNK)
 		os << " !!! ERROR: Unkown Symbol";
-	os << endl;
+	os << std::endl;
 	return os;
 }

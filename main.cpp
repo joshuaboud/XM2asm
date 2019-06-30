@@ -17,38 +17,39 @@ unsigned int START = 0; // Starting memory location for loader
 
 int main(int argc, char ** argv){
 	// timestamp for list file
-	time_t timestamp = chrono::system_clock::to_time_t(chrono::system_clock::now());
+	time_t timestamp = 
+	std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 	
 	initSymTbl(symtbl);
 	initRecords(records);
 	
 	// File streams for input and output
-	ifstream source;
+	std::ifstream source;
 	// Ensure file has opened properly
 	if(argc != 2){
-		cout << "Must open with XM2 source module! Exiting..." << endl;
+		std::cout << "Must open with XM2 source module! Exiting..." << std::endl;
 		exit(1);
 	}
 	source.open(argv[1]);
 	if(!source){
-		cout << "File does not exist! Exiting..." << endl;
+		std::cout << "File does not exist! Exiting..." << std::endl;
 		exit(1);
 	}
 	
 	// Prepare name of list file
-	string srcName(argv[1]);
+	std::string srcName(argv[1]);
 	// Truncate file extension
-	string listFileName = srcName.substr(0, srcName.find('.'));
+	std::string listFileName = srcName.substr(0, srcName.find_last_of('.'));
 	listFileName += ".lis"; // append .lis
 	
 	#ifdef DEBUG
 	#define listFile cout // print to console instead of list file
 	#else
-	ofstream listFile;
+	std::ofstream listFile;
 	// Open list file for writing
 	listFile.open(listFileName);
 	if(!listFile){
-		cout << "Error opening list file! Exiting..." << endl;
+		std::cout << "Error opening list file! Exiting..." << std::endl;
 		exit(1);
 	}
 	#endif
@@ -58,25 +59,25 @@ int main(int argc, char ** argv){
 	
 	// first pass exit actions:
 	// create list file
-	listFile << "X-Makina Assembler V 2.0" << endl;
-	listFile << "File opened: \"" << argv[1] << "\"" << endl;
-	listFile << "Time of execution: " << ctime(& timestamp) << endl;
+	listFile << "X-Makina Assembler V 2.0" << std::endl;
+	listFile << "File opened: \"" << srcName << "\"" << std::endl;
+	listFile << "Time of execution: " << ctime(& timestamp) << std::endl;
 	printRecords(listFile);
-	listFile << endl;
+	listFile << std::endl;
 	printSymTbl(listFile);
-	listFile << "Starting memory location: 0x" << hex << START << endl;
+	listFile << "Starting memory location: 0x" << std::hex << START << std::endl;
 	if(ERROR_FLAG){
-		listFile << "Errors were detected. Stopping after first pass." << endl;
+		listFile << "Errors were detected. Stopping after first pass." << std::endl;
 	}
 	
 	if(!ERROR_FLAG){
-		cout << "First pass finished with no errors." << endl;
-		listFile << "First pass finished with no errors." << endl;
+		std::cout << "First pass finished with no errors." << std::endl;
+		listFile << "First pass finished with no errors." << std::endl;
 		// call second pass here
 	}else{
 		// finished with errors
-		cout << "First pass finished with one or more errors." << endl;
-		cout << "Check \"" << listFileName << "\" for details." << endl;
+		std::cout << "First pass finished with one or more errors." << std::endl;
+		std::cout << "Check \"" << listFileName << "\" for details." << std::endl;
 	}
 	
 	// free symtbl

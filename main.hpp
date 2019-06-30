@@ -12,14 +12,14 @@
 #define MAIN_H
 
 #include <iostream>
-#include <iomanip>
 #include <ctime>
 #include <chrono>
-using namespace std;
 
-#include "commands.hpp"	//	table of instructions and directives
 #include "firstpass.hpp"	//	first pass state machine
 #include "symbols.hpp"
 #include "record.hpp"
+
+extern unsigned int START; // starting memory location for loader
+// modified by END directive
 
 #endif

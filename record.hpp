@@ -14,15 +14,16 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
-using namespace std;
 
-#include <stdio.h> // for printing hex mem location
+#include "error.hpp"
 
 struct Record { // doubly linked list node
 	int lineNum;
 	int memLoc;
-	string record;
-	string error;
+	unsigned short opcode;
+	int cmdSubScr;
+	std::string record;
+	ErrorEnum error;
 	struct Record * next;
 	struct Record * prev;
 };
@@ -35,23 +36,23 @@ extern bool ERROR_FLAG; // flag will be set on finding an error
 void initRecords(Record *& head);
 // Initializes head and records_end to NULL
 
-void pushRecord(Record *& head, int lineNum, string rec, \
-string error = "", int memLoc = -1);
+void pushRecord(Record *& head, int lineNum, std::string rec, \
+ErrorEnum error = NO_ERR, int tblSub = -1, int memLoc = -1, unsigned short opcode = -1);
 // Pushes record ptr to head of record list, if records_end is still
 // pointing to NULL, points it to the new head to keep track of the
 // bottom of the list. If error is not empty, then the global error flag
 // is set.
 
-ostream & operator<<(ostream & os, const Record * rec);
+std::ostream & operator<<(std::ostream & os, const Record * rec);
 // Prints fields of record on output stream.
 
-void printRecords(ostream & os);
+void printRecords(std::ostream & os);
 // Iterates over list of records, printing each one from back to front.
 
 void destroyRecords(Record * head);
 // Frees memory taken by record list.
 
-string getNextToken(istringstream & record);
+std::string getNextToken(std::istringstream & record);
 // Extracts next token out of stream, handles comments and errors
 
 #endif

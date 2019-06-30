@@ -1,7 +1,7 @@
 TARGET = XM2
 LIBS = -lm
 CC = g++
-CFLAGS =
+CFLAGS = -std=c++11
 
 .PHONY: default all clean
 

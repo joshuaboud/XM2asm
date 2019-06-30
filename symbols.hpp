@@ -13,36 +13,33 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-using namespace std;
-
-#include <stdio.h> // for printing mem location in hex in symtbl
 
 enum Symbol_type { LBL, REG, UNK };
 
 struct Symbol { // doubly linked list node
-	string name;
+	// doubly linked because when I print it, I'd like for the symbols
+	// to print in the order they are found in the source file (FIFO)
+	std::string name;
 	Symbol_type type;
-	uint16_t value;
+	short value;
 	struct Symbol * next;
 	struct Symbol * prev;
 };
 
 extern Symbol * symtbl; // doubly linked list to hold symbols
-extern Symbol * symtbl_end; // for printing the right way around
+extern Symbol * symtbl_end; // see above, print FIFO
 
 extern bool ERROR_FLAG;
 
-Symbol * checkTable(Symbol * head, string name);
+Symbol * checkTable(Symbol * head, std::string name);
 // Returns pointer to found element by name,
 // or NULL if element not found. Uses iterative search.
 
-int validLabel(string str);
-// Returns 1 if str == alphabetic + 0{alphanumeric}30
+bool validLabel(std::string str);
+// Returns true if str == alphabetic + 0{alphanumeric}30
 // where alphabetic is [ A - Z | a - z | _ ] and
 // alphanumeric is [ alphabetic | 0 - 9 ].
-// Returns 2 if alphabetic + 0{alphanumeric}30 + .[B|W],
-// which is not a valid label, but still a valid instruction.
-// Returns 0 if str is not a valid label.
+// Returns false if str is not a valid label.
 
 void initSymTbl(Symbol *& head);
 // Initializes symtbl.
@@ -51,14 +48,14 @@ void pushSymbol(Symbol *& head, Symbol & sym);
 // Creates symbol pointer from sym, pushes to head of symtbl linked list,
 // replacing head node.
 
-void printSymTbl(ostream & os);
+void printSymTbl(std::ostream & os);
 // Prints symbol table to output stream from back to front. Back of
 // table is global Symbol pointer symtbl_end.
 
 void destroySymTbl(Symbol * head);
 // Frees memory taken by symtbl.
 
-ostream & operator<<(ostream & os, Symbol * sym);
+std::ostream & operator<<(std::ostream & os, Symbol * sym);
 // Prints fields of symbol struct to output stream .
 
 #endif

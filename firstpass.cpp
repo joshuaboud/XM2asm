@@ -11,6 +11,10 @@
 
 #include "firstpass.hpp"
 
+#define CEX_OOB(x) (x < 0 || x > 7) // CEX op 2 out of bounds
+
+#define SA_OOB(x) (x < 0 || x > 15)
+
 // Globals
 
 FPState fpstate; // state variable
@@ -21,9 +25,9 @@ bool ERROR_FLAG; // is set when pushRecord() is passed a non-empty error
 // continue to the second pass if this flag is set.
 
 int lineNum; // line number of source module
-uint16_t memLoc; // memory location counter
+int memLoc; // memory location counter
 
-void firstPassStateMachine(ifstream & source){
+void firstPassStateMachine(std::ifstream & source){
 	// Initializes and controls state functions of state machine
 	END_OF_FIRST_PASS = false;
 	ERROR_FLAG = false;
@@ -31,11 +35,11 @@ void firstPassStateMachine(ifstream & source){
 	lineNum = 0;
 	memLoc = 0;
 	
-	string record; // record of source module is read into this
-	istringstream recordStream; // converted to stream to extract tokens
-	string token; // token of record, space delimited
+	std::string record; // record of source module is read into this
+	std::istringstream recordStream; // converted to stream to extract tokens
+	std::string token; // token of record, space delimited
 	
-	string label; // hold label for directive, used to pass label for EQU
+	std::string label; // hold label for directive, used to pass label for EQU
 	
 	int tblSub;	//	command table subscript
 	
@@ -77,24 +81,22 @@ void firstPassStateMachine(ifstream & source){
 	}
 }
 
-void checkFirstToken(istringstream & record, string & token, int & tblSub){
+void checkFirstToken(std::istringstream & record, std::string & token, int & tblSub){
 	// Grabs first token from record, decides what state to jump to
 	// after identifying token. If errors are encountered, the whole record
 	// is saved with an error description and the state machine moves onto
 	// the next record.
 	token = getNextToken(record);
+	bool labelResult = validLabel(token);
+	ErrorEnum err = NO_ERR; // default to no error
 	if(record.str()[0] == ';'){ // just a comment
 		pushRecord(records, lineNum, record.str());
 		return;
-	}else if(token.empty()){ // empty record
-		string err = "ERROR: Empty record.";
+	}if(token.empty()){ // empty record
+		err = EMPTY_RECORD;
 		pushRecord(records, lineNum, record.str(), err);
 		return;
-	}else if(validLabel(token) == 0){ // invalid label, valid inst
-		string err = "ERROR: Invalid label.";
-		pushRecord(records, lineNum, record.str(), err);
-		return;
-	}else if((tblSub = checkTable(commands, token)) > -1){
+	}if((tblSub = checkTable(commands, token)) != CMD_NOT_FOUND){
 		switch(commands[tblSub].type){ // ^if true, inst or dir
 		case DIR:
 			fpstate = CHECK_DIR;
@@ -102,18 +104,26 @@ void checkFirstToken(istringstream & record, string & token, int & tblSub){
 		case INST:
 			fpstate = CHECK_INST;
 			return;
+		default:
+			// shouldn't be neither
+			err = EMPTY_RECORD;
+			pushRecord(records, lineNum, record.str(), err);
+			return;
 		}
-	}else if(validLabel(token) == 1){ // must be valid label
+	}if(!labelResult){ // invalid label
+		err = INV_LBL;
+		pushRecord(records, lineNum, record.str(), err);
+		return;
+	}if(labelResult){ // must be valid label
 		Symbol * symPtr;
 		if((symPtr = checkTable(symtbl, token)) != NULL){ // in sym table
-			string err;
 			switch(symPtr->type){
 			case LBL: // double defined label
-				err = "ERROR: Duplicate label definition.";
+				err = DUP_LBL;
 				pushRecord(records, lineNum, record.str(), err);
 				return;
 			case REG: // label is R0 - R7
-				err = "ERROR: Label cannot be register.";
+				err = LBL_REG;
 				pushRecord(records, lineNum, record.str(), err);
 				return;
 			case UNK: // forward reference, fill in data
@@ -132,21 +142,21 @@ void checkFirstToken(istringstream & record, string & token, int & tblSub){
 			return;
 		}
 	} else { // invalid label
-		string err = "ERROR: Invalid label.";
+		err = INV_LBL;
 		pushRecord(records, lineNum, record.str(), err);
 		return;
 	}
-	// end of first pass, back to main
 }
 
-void checkInstOrDir(istringstream & record, string & token, int & tblSub){
+void checkInstOrDir(std::istringstream & record, std::string & token, int & tblSub){
 	token = getNextToken(record); // Get first token
+	ErrorEnum err = NO_ERR;
 	if(token.empty()){ // end of record
 		// save label
 		pushRecord(records, lineNum, record.str());
 		fpstate = CHECK_FIRST_TOKEN;
 		return;
-	}else if((tblSub = checkTable(commands, token)) != -1){ // inst or dir
+	}if((tblSub = checkTable(commands, token)) != CMD_NOT_FOUND){ // inst or dir
 		switch(commands[tblSub].type){
 		case DIR:
 			fpstate = CHECK_DIR;
@@ -154,52 +164,58 @@ void checkInstOrDir(istringstream & record, string & token, int & tblSub){
 		case INST:
 			fpstate = CHECK_INST;
 			return;
+		default:
+			break;
 		}
-	} else { // error, cannot have label following label
-		string err = "ERROR: Label cannot follow label on same record.";
-		pushRecord(records, lineNum, record.str(), err);
-		fpstate = CHECK_FIRST_TOKEN;
-		return;
 	}
+	err = MULT_LBL;
+	pushRecord(records, lineNum, record.str(), err);
+	fpstate = CHECK_FIRST_TOKEN;
+	return;
 }
 
-void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & memLoc){
+void checkInst(std::istringstream & record, std::string & token,
+int & tblSub, int & memLoc){
 	token = getNextToken(record); // should hold all operands
 	
-	string err = ""; // default to no error
+	ErrorEnum err = NO_ERR; // default to no error
 	
 	Symbol * sym;
-	string operand;
+	std::string operand;
 	
-	// for CEX:
-	string cexFlags[17] = {"EQ","NE","CS","HS","CC","LO","MI","PL","VS","VC",\
-	"HI","LS","GE","LT","GT","LE","AL"};
 	bool cexPassed;
 	
 	if(token.empty()){
-		err = "ERROR: Missing operand(s).";
+		err = MISS_OP;
 		pushRecord(records, lineNum, record.str(), err, memLoc);
 		fpstate = CHECK_FIRST_TOKEN;
 		return;
 	}
 	if(memLoc % 2 != 0){
-		err = "ERROR: Instruction not on even mem addr. Use ALIGN.";
+		err = UNEV_ADDR;
 		pushRecord(records, lineNum, record.str(), err, memLoc);
 		fpstate = CHECK_FIRST_TOKEN;
 		return;
 	}
 	
 	// get first operand
+	std::cout << "start: " << token << std::endl;
 	operand = getOperand(token);
+	
+	bool labelResult;
+	bool valueResult;
+	bool constResult;
 	
 	switch(commands[tblSub].ops){
 	case CR_R:
+		labelResult = validLabel(operand);
+		constResult = validConstant(operand);
 		// verify first operand
-		if((sym = checkTable(symtbl, operand)) == NULL && \
-		!(validLabel(operand) == 1 || validConstant(operand))){
+		if((sym = checkTable(symtbl, operand)) == NULL &&
+		!(labelResult || constResult)){
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Instruction takes constant or register as first operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){ // valid forward ref
+			err = INV_OP1;
+		}else if(sym == NULL && labelResult){ // valid forward ref
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
@@ -207,76 +223,82 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
 		}else if(sym == NULL && \
-		!(validLabel(operand) == 1 || validConstant(operand))){ // invalid lbl
+		!(labelResult || constResult)){ // invalid lbl
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in first operand.";
+			err = INV_OP1;
 		}else if(sym != NULL && sym->type == LBL){ // if known label
 			if(!validConstant(sym->value)){ // check that value is const
-				err = "ERROR: Instruction takes constant as first operand.";
+				err = INV_OP1;
 			}
 		}
 		// if here, first operand is verified as a constant, register, or label.
 		// verify second operand
 		operand = getOperand(token);
+		labelResult = validLabel(operand);
+		
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type == LBL){
 			// if operand is not a register or unkown
-			err = "ERROR: Instruction takes register as second operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP2;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
+		}else if(sym == NULL && !labelResult){ // invalid lbl
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in second operand.";
+			err = INV_OP2;
 		}
 		break;
 	case R_R:
+		labelResult = validLabel(operand);
 		// verify first operand
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type == LBL){
 			// if operand is not a register or unkown
-			err = "ERROR: Instruction takes register as first operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP1;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
+		}else if(sym == NULL && labelResult != 1){ // invalid lbl
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in first operand.";
+			err = INV_OP1;
 		}
 		// verify second operand
 		operand = getOperand(token);
+		labelResult = validLabel(operand);
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type == LBL){
 			// if operand is not a register or unkown
-			err = "ERROR: Instruction takes register as second operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP2;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
+		}else if(sym == NULL && !labelResult){ // invalid lbl
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in second operand.";
+			err = INV_OP2;
 		}
 		break;
 	case C:
-		if((sym = checkTable(symtbl, operand)) == NULL && !validConstant(operand)){
+		constResult = validConstant(operand);
+		labelResult = validLabel(operand);
+		if((sym = checkTable(symtbl, operand)) == NULL && !constResult){
 			// if operand is not a label/UNK and not a valid constant
-			err = "ERROR: Instruction takes constant as operand.";
+			err = INV_CONST;
 		}else if(sym != NULL && sym->type == REG){
 			// if operand is a register
-			err = "ERROR: Instruction takes constant as first operand.";
+			err = INV_CONST;
 		}else if(sym != NULL && !validConstant(sym->value)){ // known label
 			// if label value is not a constant
-			err = "ERROR: Instruction takes constant as first operand.";
-		}else if(sym == NULL && validLabel(operand)){
+			err = INV_CONST;
+		}else if(sym == NULL && labelResult){
 			// add to symbol table as forward reference
 			Symbol temp;
 			temp.name = operand;
@@ -286,30 +308,33 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 		}
 		break;
 	case R:
+		labelResult = validLabel(operand);
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type == LBL){
 			// if operand is not a register or unk
-			err = "ERROR: Instruction takes register as operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = NOT_REG;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
+		}else if(sym == NULL && !labelResult){ // invalid lbl
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in operand.";
+			err = NOT_REG;
 		}
 		break;
 	case V: // value
-		if(!validValue(operand) && validLabel(operand) != 1){
+		valueResult = validValue(operand);
+		labelResult = validLabel(operand);
+		if(!valueResult && !labelResult){
 			// if not a valid value and not a valid label
-			err = "ERROR: Operand must be value.";
-		}else if((sym = checkTable(symtbl, operand)) == NULL && \
-		validLabel(operand) != 1 && !validValue(operand)){
+			err = NOT_VAL;
+		}else if((sym = checkTable(symtbl, operand)) == NULL &&
+		!labelResult && !valueResult){
 			// not a label or valid label to make forward reference
-			err = "ERROR: Operand must be value.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = NOT_VAL;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
@@ -318,32 +343,34 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 			pushSymbol(symtbl, temp);
 		}else if(sym != NULL && sym->type == REG){
 			// if symbol is in symtbl but not a label or unk
-			err = "ERROR: Operand must be value.";
+			err = NOT_VAL;
 		}
 		break;
-	case CEX:
+	case CEX_:
 		// see if first operand is in list of CEX flags
 		cexPassed = false;
-		for(int i = 0; i < 17; i++){
-			if(operand == cexFlags[i]){
+		for(int i = 0; i < CEX_FLAG_CNT; i++){
+			if(operand == cexFlags[i].flag){
 				cexPassed = true;
 				break;
 			}
 		}
 		if(!cexPassed){
 			// failed check against valid optype1 list
-			err = "ERROR: Instruction takes CEX flag as first operand.";
+			err = CEX1;
 		}
 		// check second operand is value
 		operand = getOperand(token);
-		if(!validValue(operand) && validLabel(operand) != 1){
+		valueResult = validValue(operand);
+		labelResult = validLabel(operand);
+		if(!valueResult && !labelResult){
 			// if not a valid value and not a valid label
-			err = "ERROR: Second operand must be value.";
-		}else if((sym = checkTable(symtbl, operand)) == NULL && \
-		validLabel(operand) != 1 && !validValue(operand)){
+			err = INV_OP2;
+		}else if((sym = checkTable(symtbl, operand)) == NULL &&
+		!labelResult && !valueResult){
 			// not a label or valid label to make forward reference
-			err = "ERROR: Operand must be value or valid label.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP2;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
@@ -352,26 +379,30 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 			pushSymbol(symtbl, temp);
 		}else if(sym != NULL && sym->type == REG){
 			// if symbol is in symtbl but not a label or unk
-			err = "ERROR: Operand must be value.";
-		}else if(sym != NULL && sym->type == LBL && \
-		(sym->value > 7 || sym->value < 0)){
+			err = INV_OP2;
+		}else if(sym != NULL && sym->type == LBL &&
+		CEX_OOB(sym->value)){
 			// value of symbol out of bounds
-			err = "ERROR: Operand must be value between 0 and 7 (inclusive).";
-		}else if(validValue(operand) && \
-		(extractValue(operand) > 7 || extractValue(operand) < 0)){
-			// value out of bounds
-			err = "ERROR: Operand must be value between 0 and 7 (inclusive).";
+			err = OUT_BOUND;
+		}else if(valueResult){ // valid value but...
+			int val = extractValue(operand);
+			if(CEX_OOB(val)){
+				// value out of bounds
+				err = OUT_BOUND;
+			}
 		}
 		// check third operand
 		operand = getOperand(token);
-		if(!validValue(operand) && validLabel(operand) != 1){
+		valueResult = validValue(operand);
+		labelResult = validLabel(operand);
+		if(!valueResult && !labelResult){
 			// if not a valid value and not a valid label
-			err = "ERROR: Second operand must be value.";
-		}else if((sym = checkTable(symtbl, operand)) == NULL && \
-		validLabel(operand) != 1 && !validValue(operand)){
+			err = INV_OP3;
+		}else if((sym = checkTable(symtbl, operand)) == NULL &&
+		!labelResult && !valueResult){
 			// not a label or valid label to make forward reference
-			err = "ERROR: Operand must be value or valid label.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP3;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
@@ -380,26 +411,30 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 			pushSymbol(symtbl, temp);
 		}else if(sym != NULL && sym->type == REG){
 			// if symbol is in symtbl but not a label or unk
-			err = "ERROR: Operand must be value.";
-		}else if(sym != NULL && sym->type == LBL && \
-		(sym->value > 7 || sym->value < 0)){
+			err = INV_OP3;
+		}else if(sym != NULL && sym->type == LBL &&
+		CEX_OOB(sym->value)){
 			// value of symbol out of bounds
-			err = "ERROR: Operand must be value between 0 and 7 (inclusive).";
-		}else if(validValue(operand) && \
-		(extractValue(operand) > 7 || extractValue(operand) < 0)){
-			// value out of bounds
-			err = "ERROR: Operand must be value between 0 and 7 (inclusive).";
+			err = OUT_BOUND;
+		}else if(valueResult){ // valid value but...
+			int val = extractValue(operand);
+			if(CEX_OOB(val)){
+				// value out of bounds
+				err = OUT_BOUND;
+			}
 		}
 		break;
 	case SA:
-		if(!validValue(operand) && validLabel(operand) != 1){
+		labelResult = validLabel(operand);
+		valueResult = validValue(operand);
+		if(!labelResult && !valueResult){
 			// if not a valid value and not a valid label
-			err = "ERROR: Operand must be value.";
-		}else if((sym = checkTable(symtbl, operand)) == NULL && \
-		validLabel(operand) != 1 && !validValue(operand)){
+			err = NOT_VAL;
+		}else if((sym = checkTable(symtbl, operand)) == NULL &&
+		!labelResult && !valueResult){
 			// not a label or valid label to make forward reference
-			err = "ERROR: Operand must be value.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = NOT_VAL;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
@@ -408,34 +443,37 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 			pushSymbol(symtbl, temp);
 		}else if(sym != NULL && sym->type == REG){
 			// if symbol is in symtbl but not a label or unk
-			err = "ERROR: Operand must be value.";
-		}else if(sym != NULL && (sym->value < 0 || sym->value > 15)){
+			err = NOT_VAL;
+		}else if(sym != NULL && SA_OOB(sym->value)){
 			// value out of bounds
-			err = "ERROR: Value must be between 0 and 15 (inclusive).";
+			err = OUT_BOUND;
 			pushRecord(records, lineNum, record.str(), err, memLoc);
 			fpstate = CHECK_FIRST_TOKEN;
 			return;
-		}else if(validValue(operand) && \
-		(extractValue(operand) < 0 || extractValue(operand) > 15)){
-			// value out of bounds
-			err = "ERROR: Value must be between 0 and 15 (inclusive).";
+		}else if(valueResult){
+			int val = extractValue(operand);
+			if(SA_OOB(val)){
+				// value out of bounds
+				err = OUT_BOUND;
+			}
 		}
 		break;
-	case ST:
+	case ST_:
+		labelResult = validLabel(operand);
 		// check that first operand is register
 		if((sym = checkTable(symtbl, operand)) == NULL && sym->type == LBL){
 			// if operand is not a register
-			err = "ERROR: Instruction takes register as first operand. (Offset only on second)";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP1;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
-			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in first operand. (Offset only on second)";
+		}else if(sym == NULL && !labelResult){ // invalid lbl
+			// if not a register or label and not a valid label
+			err = INV_OP1;
 		}
 		// check second operand
 		operand = getOperand(token);
@@ -454,20 +492,20 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 		// check symtbl with (extracted) register name
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type == LBL){
 			// if operand is not a register or unk
-			err = "ERROR: Instruction takes register as second operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP2;
+		}else if(sym == NULL && (labelResult = validLabel(operand))){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
+		}else if(sym == NULL && !labelResult){ // invalid lbl
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in operand.";
+			err = INV_OP2;
 		}
 		break;
-	case LD:
+	case LD_:
 		// may be pre/post increment/decrement
 		if(operand[0] == '+' || operand[0] == '-'){
 			// pre increment/decrement
@@ -483,61 +521,63 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 		// check symtbl with (extracted) register name
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type == LBL){
 			// if operand is not a register or unk
-			err = "ERROR: Instruction takes register as first operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP1;
+		}else if(sym == NULL && (labelResult = validLabel(operand))){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
-			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in operand.";
+		}else if(sym == NULL && !labelResult){ // invalid lbl
+			// if not a register or label and not a valid label
+			err = INV_OP1;
 		}
 		// check second operand
 		operand = getOperand(token);
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type == LBL){
 			// if operand is not a register or unk
-			err = "ERROR: Instruction takes register as second operand. (Offest only on first)";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP2;
+		}else if(sym == NULL && (labelResult = validLabel(operand))){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
-			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in operand.";
+		}else if(sym == NULL && !labelResult){ // invalid lbl
+			// if not a register or label and not a valid label
+			err = INV_OP2;
 		}
 		break;
-	case LDR:
+	case LDR_:
 		// check first operand
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type == LBL){
 			// if operand is not a register or unk
-			err = "ERROR: Instruction takes register as first operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP1;
+		}else if(sym == NULL && (labelResult = validLabel(operand))){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
+		}else if(sym == NULL && !labelResult){ // invalid lbl
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in operand.";
+			err = INV_OP1;
 		}
 		// check second operand
 		operand = getOperand(token);
-		if(!validValue(operand) && validLabel(operand) != 1){
+		valueResult = validValue(operand);
+		labelResult = validLabel(operand);
+		if(!valueResult && !labelResult){
 			// if not a valid value and not a valid label
-			err = "ERROR: Second operand must be value.";
+			err = INV_OP2;
 		}else if((sym = checkTable(symtbl, operand)) == NULL && \
-		validLabel(operand) != 1 && !validValue(operand)){
+		!labelResult && !valueResult){
 			// not a label or valid label to make forward reference
-			err = "ERROR: Second operand must be value.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP2;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
@@ -546,67 +586,69 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 			pushSymbol(symtbl, temp);
 		}else if(sym != NULL && sym->type == REG){
 			// if symbol is in symtbl but not a label or unk
-			err = "ERROR: Second operand must be value.";
+			err = INV_OP2;
 		}
 		// check third operand
 		operand = getOperand(token);
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type == LBL){
 			// if operand is not a register or unk
-			err = "ERROR: Instruction takes register as third operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP3;
+		}else if(sym == NULL && (labelResult = validLabel(operand))){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
+		}else if(sym == NULL && !labelResult){ // invalid lbl
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in operand.";
+			err = INV_OP3;
 		}
 		break;
-	case STR:
+	case STR_:
 		// check first operand
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type == LBL){
 			// if operand is not a register or unk
-			err = "ERROR: Instruction takes register as first operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP1;
+		}else if(sym == NULL && (labelResult = validLabel(operand))){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
+		}else if(sym == NULL && !labelResult){ // invalid lbl
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in operand.";
+			err = INV_OP1;
 		}
 		// check second operand
 		operand = getOperand(token);
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type == LBL){
 			// if operand is not a register or unk
-			err = "ERROR: Instruction takes register as second operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP2;
+		}else if(sym == NULL && (labelResult = validLabel(operand))){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
+		}else if(sym == NULL && !labelResult){ // invalid lbl
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in operand.";
+			err = INV_OP2;
 		}
 		// check third operand
 		operand = getOperand(token);
-		if(!validValue(operand) && validLabel(operand) != 1){
+		valueResult = validValue(operand);
+		labelResult = validLabel(operand);
+		if(!valueResult && !labelResult){
 			// if not a valid value and not a valid label
-			err = "ERROR: Third operand must be value.";
+			err = INV_OP3;
 		}else if((sym = checkTable(symtbl, operand)) == NULL && \
-		validLabel(operand) != 1 && !validValue(operand)){
+		!labelResult && !valueResult){
 			// not a label or valid label to make forward reference
-			err = "ERROR: Third operand must be value.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP3;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
@@ -615,18 +657,20 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 			pushSymbol(symtbl, temp);
 		}else if(sym != NULL && sym->type == REG){
 			// if symbol is in symtbl but not a label or unk
-			err = "ERROR: Third operand must be value.";
+			err = INV_OP3;
 		}
 		break;
-	case BRA:
-		if(!validValue(operand) && validLabel(operand) != 1){
+	case BRA_:
+		valueResult = validValue(operand);
+		labelResult = validLabel(operand);
+		if(!valueResult && !labelResult){
 			// if not a valid value and not a valid label
-			err = "ERROR: Operand must be value.";
+			err = NOT_VAL;
 		}else if((sym = checkTable(symtbl, operand)) == NULL && \
-		validLabel(operand) != 1 && !validValue(operand)){
+		!labelResult && !valueResult){
 			// not a label or valid label to make forward reference
-			err = "ERROR: Operand must be value.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = NOT_VAL;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
@@ -635,27 +679,24 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 			pushSymbol(symtbl, temp);
 		}else if(sym != NULL && sym->type == REG){
 			// if symbol is in symtbl but not a label or unk
-			err = "ERROR: Operand must be value.";
+			err = NOT_VAL;
 		}else if(sym != NULL && sym->type == LBL && \
 		(sym->value > 1022 || sym->value < -1024 || sym->value % 2 != 0)){
 			// value of symbol out of bounds or odd
-			err = "ERROR: Operand must be value between -1024 and 1022 (inclusive) and even.";
-		}else if(validValue(operand) && \
-		(extractValue(operand) > 1022 || extractValue(operand) < -1024 ||\
-		extractValue(operand) % 2 != 0)){
-			// value out of bounds or odd
-			err = "ERROR: Operand must be value between -1024 and 1022 (inclusive) and even.";
+			err = OUT_BOUND;
 		}
 		break;
 	case BRA13:
-		if(!validValue(operand) && validLabel(operand) != 1){
+		valueResult = validValue(operand);
+		labelResult = validLabel(operand);
+		if(!valueResult && !labelResult){
 			// if not a valid value and not a valid label
-			err = "ERROR: Operand must be value.";
-		}else if((sym = checkTable(symtbl, operand)) == NULL && \
-		validLabel(operand) != 1 && !validValue(operand)){
-			// not a label or valid label to make forward reference
-			err = "ERROR: Operand must be value.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = NOT_VAL;
+		}else if((sym = checkTable(symtbl, operand)) == NULL &&
+		!labelResult && !valueResult){
+			// not a valid label to make forward reference
+			err = NOT_VAL;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
@@ -664,28 +705,23 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 			pushSymbol(symtbl, temp);
 		}else if(sym != NULL && sym->type == REG){
 			// if symbol is in symtbl but not a label or unk
-			err = "ERROR: Operand must be value.";
-		}else if(sym != NULL && sym->type == LBL && \
-		(sym->value > 8190 || sym->value < -8192 || sym->value % 2 != 0)){
-			// value of symbol out of bounds or odd
-			err = "ERROR: Operand must be value between -8192 and 8190 (inclusive) and even.";
-		}else if(validValue(operand) && \
-		(extractValue(operand) > 8190 || extractValue(operand) < -8192 ||\
-		extractValue(operand) % 2 != 0)){
-			// value out of bounds
-			err = "ERROR: Operand must be value between -8192 and 8190 (inclusive) and even.";
+			err = NOT_VAL;
 		}
 		break;
 	case V_R:
+		std::cout << "OP1: " << operand << std::endl;
+		std::cout << "left: " << token << std::endl;
+		valueResult = validValue(operand);
+		labelResult = validLabel(operand);
 		// check first operand
-		if(!validValue(operand) && validLabel(operand) != 1){
+		if(!valueResult && !labelResult){
 			// if not a valid value and not a valid label
-			err = "ERROR: First operand must be value.";
+			err = INV_OP1;
 		}else if((sym = checkTable(symtbl, operand)) == NULL && \
-		validLabel(operand) != 1 && !validValue(operand)){
+		!labelResult && !valueResult){
 			// not a label or valid label to make forward reference
-			err = "ERROR: First operand must be value.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP1;
+		}else if(sym == NULL && labelResult){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
@@ -694,109 +730,127 @@ void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & 
 			pushSymbol(symtbl, temp);
 		}else if(sym != NULL && sym->type == REG){
 			// if symbol is in symtbl but not a label or unk
-			err = "ERROR: First operand must be value.";
+			err = INV_OP1;
 		}
 		//check second operand
 		operand = getOperand(token);
+		std::cout << "OP2: " << operand << std::endl;
+		std::cout << "left: " << token << std::endl;
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type != REG){
 			// if operand is not a register
-			err = "ERROR: Instruction takes register as second operand.";
-		}else if(sym == NULL && validLabel(operand) == 1){
+			err = INV_OP2;
+		}else if(sym == NULL && (labelResult = validLabel(operand))){
 			// add label to symtbl as unkown type
 			Symbol temp;
 			temp.name = operand;
 			temp.type = UNK;
 			temp.value = 0;
 			pushSymbol(symtbl, temp);
-		}else if(sym == NULL && validLabel(operand) != 1){ // invalid lbl
+		}else if(sym == NULL && !labelResult){ // invalid lbl
 			// if not a register or label and not a valid label or constant
-			err = "ERROR: Invalid label in second operand.";
+			err = INV_OP2;
 		}
 		break;
 	default:
-		err = "This shouldn't happen, instruction has unhandled operand type.";
+		err = UNK_OP;
 		break;
 	}
 	// check if there are too many operands
 	if((operand = getOperand(token)) != ""){ // extraneous operand(s)
-		err = "ERROR: Too many operands.";
+		err = EXTR_OP;
 	}
 	if(!record.eof()){ // operands followed by non-comment garbage
-		string comments;
+		std::string comments;
 		record >> std::ws; // eat whitespace
 		getline(record, comments);
 		if(comments[0] != ';'){
-			err = "ERROR: Operand(s) followed by non-comment garbage.";
+			err = GARB;
 		}
 	}
 	// end of state, push record with either empty err or error description
-	pushRecord(records, lineNum, record.str(), err, memLoc);
+	pushRecord(records, lineNum, record.str(), err, tblSub, memLoc);
 	fpstate = CHECK_FIRST_TOKEN;
 	return;
 }
 
-void checkDir(istringstream & record, string & token, int & tblSub, uint16_t & memLoc, string label){
+void checkDir(std::istringstream & record, std::string & token, int & tblSub, 
+int & memLoc, std::string label){
 	token = getNextToken(record); // should hold operand, if any
-	string operand;
+	std::string operand;
 	int value;
+	int memLoc_ = -1; // will change to memLoc for BYTE and WORD
+	unsigned short opcode; // value for BYTE and WORD
 	Symbol * sym;
 	Symbol * lblSym; // for EQU to copy labels
-	string err = "";
-	if(commands[tblSub].name == "ALIGN"){
+	ErrorEnum err = NO_ERR;
+	switch(tblSub){
+	case ALIGN:
 		if(memLoc%2 != 0){
 			// memLoc odd, increment by 1
 			memLoc++;
 		}
-	}else if(commands[tblSub].name == "BSS"){
+		break;
+	case BSS:
 		// if a label is present, it will already be assiciated with
 		// block from checkFirstToken().
 		operand = getOperand(token);
-		if(validValue(operand) && extractValue(operand) >= 0){
-			value = extractValue(operand);
+		if(validValue(operand) && (value = extractValue(operand)) >= 0){
 			memLoc += value;
 		}else if((sym = checkTable(symtbl, operand)) != NULL &&\
 		sym->type == LBL && sym->value >= 0){
 			value = sym->value;
 			memLoc += value;
 		}else{ // invalid label, unk, reg, invalid value, or negative
-			err = "ERROR: Operand must be positive value of BSS size.";
+			err = POS_VAL;
 		}
-	}else if(commands[tblSub].name == "BYTE"){
+		opcode = 0x0;
+		break;
+	case BYTE:
+		memLoc_ = memLoc; // save memLoc
 		operand = getOperand(token);
-		if(validValue(operand) && !(extractValue(operand) & 0xFF00)){
+		if(validValue(operand) && !((value = extractValue(operand)) & ~0xFF)){
 			// valid value and 8 bits or less (no bits set higher than bit 7)
 			//memLoc += 1; // increase counter by one byte // moved to end of BYTE
-		}else if((sym = checkTable(symtbl, operand)) != NULL &&\
-		sym->type == LBL && !(sym->value & 0xFF00)){
+			opcode = value;
+		}else if((sym = checkTable(symtbl, operand)) != NULL &&
+		sym->type != REG && !(sym->value & ~0xFF)){
 			// same idea, no bits set above bit 7
 			//memLoc += 1; // increase counter by one byte // ``
+			opcode = sym->value;
+		}else if(sym == NULL && validLabel(operand)){
+			// add label to symtbl as unkown type
+			Symbol temp;
+			temp.name = operand;
+			temp.type = UNK;
+			temp.value = 0;
+			pushSymbol(symtbl, temp);
 		}else{ // invalid label, unk, reg, invalid value
-			err = "ERROR: Operand must be 8 bit value.";
+			err = OUT_BOUND;
 		}
 		memLoc += 1; // increment memLoc regardless to not cause false errors
-	}else if(commands[tblSub].name == "END"){
+		break;
+	case END:
 		// this has optional operand
 		operand = getOperand(token);
 		if(!operand.empty()){
 			// has operand: make sure valid
 			sym = checkTable(symtbl, operand);
-			err = ""; // ensure err is empty
 			if(sym != NULL && (sym->type != LBL || sym->value < 0)){
 				// if operand is in symbol table, and either it's not a
 				// label or not positive
-				err = "ERROR: Operand after END must refer to label or mem location.";
+				err = END_ERR;
 			}else if(sym != NULL && sym->type == LBL && sym->value > 0){
 				// if operand is in symbol table, sym type is a label,
 				// and value is positive
 				START = sym->value; // set starting point to label's value
 			}else if(sym == NULL && \
-			(!validValue(operand) || extractValue(operand) < 0)){
+			(!validValue(operand) || (value = extractValue(operand)) < 0)){
 				// operand not a symbol and
 				// if operand is not a valid constant or if operand is a
 				// negative value
-				err = "ERROR: Operand after END must be valid memory location.";
-			}else if(sym == NULL && validConstant(operand) && \
-			((value = extractValue(operand)) > 0)){
+				err = END_ERR;
+			}else if(sym == NULL && validValue(operand) && \
+			(value  > 0)){
 				// if operand is not a symbol, is a valid value,
 				// and the value is positive
 				START = value;
@@ -804,15 +858,16 @@ void checkDir(istringstream & record, string & token, int & tblSub, uint16_t & m
 		}
 		// finish first pass, ignoring any subsequent records
 		END_OF_FIRST_PASS = true;
-	}else if(commands[tblSub].name == "EQU"){
+		break;
+	case EQU:
 		operand = getOperand(token);
 		if(operand.empty()){
 			// no operand
-			err = "ERROR: Directive EQU requires an operand.";
+			err = MISS_OP;
 		}
 		if(label.empty()){
 			// no label passed
-			err = "ERROR: Directive EQU requires a label.";
+			err = MISS_OP;
 		}else{ // label provided
 			if((sym = checkTable(symtbl, operand)) != NULL && \
 			sym->type != UNK){
@@ -822,7 +877,7 @@ void checkDir(istringstream & record, string & token, int & tblSub, uint16_t & m
 				lblSym->type = sym->type; // copy type
 				lblSym->value = sym->value; // copy value
 			}else if(sym != NULL && sym->type == UNK){
-				err = "ERROR: Cannot equate to unkown label.";
+				err = FWD_REF;
 			}else if(sym == NULL && validValue(operand)){
 				// operand is valid value
 				// modify label with operand as value
@@ -831,55 +886,66 @@ void checkDir(istringstream & record, string & token, int & tblSub, uint16_t & m
 				lblSym->value = extractValue(operand); // copy value
 			}else{
 				// operand must be invalid label or value
-				err = "ERROR: Operand must be valid symbol or value.";
+				err = NOT_VAL;
 			}
 		}
-	}else if(commands[tblSub].name == "ORG"){
+		break;
+	case ORG:
 		operand = getOperand(token);
 		if(operand.empty()){
 			// no operand
-			err = "ERROR: Directive ORG requires an operand.";
+			err = MISS_OP;
 		}
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type != LBL){
 			// in symbol table but not a label
-			err = "ERROR: Operand cannot be register or unkown symbol.";
+			err = FWD_REF;
 		}else if(sym != NULL && sym->type == LBL && sym->value < 0){
 			// in symbol table and label, but negative
-			err = "ERROR: ORG requires positive value.";
+			err = POS_VAL;
 		}else if(sym == NULL && \
 		(!validValue(operand) || extractValue(operand) < 0)){
 			// not in symbol table, but is either not a valid value
 			// or is negative
-			err = "ERROR: ORG requires positive value.";
+			err = POS_VAL;
 		}else{
 			// update mem location
 			memLoc = extractValue(operand);
 		}
-	}else if(commands[tblSub].name == "WORD"){
-		if(memLoc % 2 != 0){
-			// 16 bit value should fall on even byte
-			err = "ERROR: 16 bit word should fall on even byte. Use ALIGN.";
-		}
+		break;
+	case WORD:
+		memLoc_ = memLoc; // save memLoc
 		operand = getOperand(token);
-		if(validValue(operand) && !(extractValue(operand) & 0xFFFF0000)){
+		if(validValue(operand) && !((value = extractValue(operand)) & ~0xFFFF)){
 			// valid value and 16 bits or less (no bits set higher than bit 15)
 			//memLoc += 2; // increase counter by two bytes // moved to end of WORD
+			opcode = value;
 		}else if((sym = checkTable(symtbl, operand)) != NULL &&\
-		sym->type == LBL && !(sym->value & 0xFFFF0000)){
+		sym->type != REG && !(sym->value & ~0xFFFF)){
 			// same idea, no bits set above bit 15
 			//memLoc += 2; // increase counter by two bytes // ``
+			opcode = sym->value;
+		}else if(sym == NULL && validLabel(operand)){
+			// add label to symtbl as unkown type
+			Symbol temp;
+			temp.name = operand;
+			temp.type = UNK;
+			temp.value = 0;
+			pushSymbol(symtbl, temp);
 		}else{ // invalid label, unk, reg, invalid value
-			err = "ERROR: Operand must be 16 bit value.";
+			err = NOT_VAL;
 		}
 		memLoc += 2; // increment memLoc regardless to not cause false errors
+		break;
+	default:
+		break;
 	}
 	if((operand = getOperand(token)) != ""){ // extraneous operand(s)
-		err = "ERROR: Too many operand(s).";
+		err = EXTR_OP;
 	}
 	if(!token.empty()){ // operands followed by non-comment garbage
-		err = "ERROR: Statement followed by non-comment garbage.";
+		err = GARB;
 	}
-	pushRecord(records, lineNum, record.str(), err);
+	pushRecord(records, lineNum, record.str(), err, tblSub, memLoc_, opcode);
 	fpstate = CHECK_FIRST_TOKEN;
 	return;
 }

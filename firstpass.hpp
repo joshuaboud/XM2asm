@@ -15,37 +15,36 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-using namespace std;
 
 #include "commands.hpp"
 #include "symbols.hpp"
 #include "record.hpp"
+#include "error.hpp"
+#include "operands.hpp"
+#include "main.hpp" // to modify starting location
 
 enum FPState { CHECK_FIRST_TOKEN, CHECK_INST_DIR, CHECK_DIR, \
 	CHECK_INST };	//	state machine control for first pass
 
-extern unsigned int START; // starting memory location for loader
-// defined in main as 0, modified by END directive
-
-void firstPassStateMachine(ifstream & source);
+void firstPassStateMachine(std::ifstream & source);
 // enter state machine
 
-void checkFirstToken(istringstream & record, string & token, int & tblSub);
+void checkFirstToken(std::istringstream & record, std::string & token, int & tblSub);
 // Reads first token of record, decide state change after identifying token
 // as a label, an instruction, a directive, a comment, or an error.
 
-void checkInstOrDir(istringstream & record, string & token, int & tblSub);
+void checkInstOrDir(std::istringstream & record, std::string & token, int & tblSub);
 // Receives table index of inst or dir, changes state to process inst
 // or dir. If not found, push error for label after label and return.
 
-void checkInst(istringstream & record, string & token, int & tblSub, uint16_t & memLoc);
+void checkInst(std::istringstream & record, std::string & token, int & tblSub, int & memLoc);
 // Verifies operand(s) of instruction and adds to list of records with location counter.
 // Starts off with empty error string. If an error is detected, the string is
 // updated to contain a description of the error. At the end of the function,
 // the record is pushed into the list of records. The error flag is set in the
 // pushRecord() function based on whether or not the error string is empty.
 
-void checkDir(istringstream & record, string & token, int & tblSub, uint16_t & memLoc, string label);
+void checkDir(std::istringstream & record, std::string & token, int & tblSub, int & memLoc, std::string label);
 // Executes directive, reports any errors in operands or otherwise, and 
 // adds to list of records. Modifies location counter for applicable directives.
 // The error flag is set in the pushRecord() function based on whether or 

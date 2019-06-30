@@ -3,6 +3,7 @@
 
 enum { r = 0, c };
 enum { w = 0, b };
+enum { pr = 0, po};
 
 // unions for opcodes
 

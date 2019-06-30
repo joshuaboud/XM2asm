@@ -241,8 +241,50 @@ int & tblSub){
 	}
 	case LD_:
 	case ST_:
+	{
+		union mem_op tempOp;
+		tempOp.opcode = commands[tblSub].baseOp;
+		if(commands[tblSub].ops == ST_){
+			symPtr = checkTable(symtbl,operand);
+			tempOp.bf.src = symPtr->value;
+			operand = getOperand(operands);
+		}
+		
+		if(operand[0] == '+'){
+			operand = operand.substr(1,operand.length()-1); // pop off +
+			tempOp.bf.prpo = pr;
+			tempOp.bf.inc = true;
+		}else if(operand[0] == '-'){
+			operand = operand.substr(1,operand.length()-1); // pop off -
+			tempOp.bf.prpo = pr;
+			tempOp.bf.dec = true;
+		}
+		if(operand.back() == '+'){
+			operand.pop_back(); // pop off +
+			tempOp.bf.prpo = po;
+			tempOp.bf.inc = true;
+		}else if(operand.back() == '-'){
+			operand.pop_back(); // pop off -
+			tempOp.bf.prpo = po;
+			tempOp.bf.dec = true;
+		}
+		
+		symPtr = checkTable(symtbl,operand);
+		
+		if(commands[tblSub].ops == ST_){
+			tempOp.bf.dst = symPtr->value;
+		}else{ // LD
+			tempOp.bf.src = symPtr->value;
+			operand = getOperand(operands);
+			symPtr = checkTable(symtbl,operand);
+			tempOp.bf.dst = symPtr->value;
+		}
+		
+		record->opcode = tempOp.opcode;
+		
 		spstate = CHK_FIRST_TOK;
 		return;
+	}
 	case LDR_:
 	case STR_:
 		spstate = CHK_FIRST_TOK;

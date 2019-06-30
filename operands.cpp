@@ -125,6 +125,7 @@ int extractValue(std::string operand){
 		}
 		break;
 	}
+	std::cout << "ExtractValue: " << operand << " = " << value << std::endl;
 	return value;
 }
 
@@ -204,5 +205,7 @@ int decodeConst(int val){
 		return 6;
 	case -1:
 		return 7;
+	default:
+		return -1;
 	}
 }

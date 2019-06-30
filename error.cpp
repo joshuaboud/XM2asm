@@ -29,5 +29,8 @@ std::string Error[NUM_OF_ERRORS] = {
 	"Non-comment garbage.",
 	"Operand must be positive value.",
 	"END operand must refer to label or mem location.",
-	"Operand cannot be forward reference."
+	"Operand cannot be forward reference.",
+	"Second pass cannot find INST or DIR.",
+	"Unknown symbol in second pass.",
+	"Branch to uneven address."
 };

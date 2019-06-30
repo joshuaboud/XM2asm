@@ -16,17 +16,22 @@
 #include <iostream>
 
 #include "record.hpp"
+#include "symbols.hpp"
+#include "commands.hpp"
+#include "opcode.hpp"
 
-enum SPState { CHK_FIRST_TOK, PROC_DIR, PROC_INST_OPS, GEN_OP_CODE,
+enum SPState { CHK_FIRST_TOK, PROC_DIR, PROC_INST_OPS,
 	GEN_S_RECS };
 
 void secondPassStateMachine();
 
-void chkFirstTok(Record * record, std::istringstream & recordStream);
+void chkFirstTok(Record * record, std::istringstream & recordStream,
+int & tblSub);
 
-void procDir();
+void procDir(Record * record, std::istringstream & recordStream);
 
-void procInstOps();
+void procInstOps(Record * record, std::istringstream & recordStream,
+int & tblSub);
 
 void genOpCode();
 

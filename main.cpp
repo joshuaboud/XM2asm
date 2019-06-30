@@ -36,50 +36,27 @@ int main(int argc, char ** argv){
 		exit(1);
 	}
 	
-	// Prepare name of list file
+	// Prepare base file name
 	std::string srcName(argv[1]);
 	// Truncate file extension
-	std::string listFileName = srcName.substr(0, srcName.find_last_of('.'));
-	listFileName += ".lis"; // append .lis
-	
-	#ifdef DEBUG
-	#define listFile cout // print to console instead of list file
-	#else
-	std::ofstream listFile;
-	// Open list file for writing
-	listFile.open(listFileName);
-	if(!listFile){
-		std::cout << "Error opening list file! Exiting..." << std::endl;
-		exit(1);
-	}
-	#endif
+	std::string baseFileName = srcName.substr(0, srcName.find_last_of('.'));
 	
 	// call first state machine
 	firstPassStateMachine(source);
 	
 	// first pass exit actions:
 	// create list file
-	listFile << "X-Makina Assembler V 1.1" << std::endl;
-	listFile << "File opened: \"" << srcName << "\"" << std::endl;
-	listFile << "Time of execution: " << ctime(& timestamp) << std::endl;
-	printRecords(listFile);
-	listFile << std::endl;
-	printSymTbl(listFile);
-	listFile << "Starting memory location: 0x" << std::hex << START << std::endl;
-	if(ERROR_FLAG){
-		listFile << "Errors were detected. Stopping after first pass." << std::endl;
-	}
+	printListFile(baseFileName, timestamp, srcName);
+	
 	
 	if(!ERROR_FLAG){
 		std::cout << "First pass finished with no errors." << std::endl;
-		listFile << "First pass finished with no errors." << std::endl;
 		// call second pass here
 		secondPassStateMachine();
-	}else{
-		// finished with errors
-		std::cout << "First pass finished with one or more errors." << std::endl;
-		std::cout << "Check \"" << listFileName << "\" for details." << std::endl;
+		printListFile(baseFileName, timestamp, srcName);
 	}
+	
+	
 	
 	// free symtbl
 	destroySymTbl(symtbl);
@@ -88,9 +65,42 @@ int main(int argc, char ** argv){
 	
 	source.close();
 	
+	
+	
+	return 0;
+}
+
+void printListFile(std::string baseFileName, time_t timestamp,
+std::string srcName){
+	#ifdef DEBUG
+	#define listFile cout // print to console instead of list file
+	#else
+	std::string listFileName = baseFileName + ".lis";
+	std::ofstream listFile;
+	// Open list file for writing
+	listFile.open(listFileName, std::ios::out | std::ios::trunc);
+	if(!listFile){
+		std::cout << "Error opening list file! Exiting..." << std::endl;
+		exit(1);
+	}
+	#endif
+	listFile << "X-Makina Assembler V 1.1" << std::endl;
+	listFile << "File opened: \"" << baseFileName << "\"" << std::endl;
+	listFile << "Time of execution: " << ctime(& timestamp) << std::endl;
+	printRecords(listFile);
+	listFile << std::endl;
+	printSymTbl(listFile);
+	listFile << "Starting memory location: 0x" << std::hex << START << std::endl;
+	
+	if(ERROR_FLAG){
+		listFile << "Errors were detected. Stopping after first pass." << std::endl;
+		// finished with errors
+		std::cout << "First pass finished with one or more errors." << std::endl;
+		std::cout << "Check \"" << listFileName << "\" for details." << std::endl;
+	}else{
+		listFile << "First pass finished with no errors." << std::endl;
+	}
 	#ifndef DEBUG
 	listFile.close();
 	#endif
-	
-	return 0;
 }

@@ -47,7 +47,7 @@ std::ostream & operator<<(std::ostream & os, const Record * rec){
 		// print formatted hex
 		os << std::uppercase; // A-F instead of a-f
 		os << std::hex << std::setw(4) << rec->memLoc;
-		os << " 0x" << std::setw(4) << rec->opcode << std::dec << " \t";
+		os << std::hex << " 0x" << std::setw(4) << rec->opcode << std::dec << " \t";
 		os << std::setfill(' '); // clear setw fill
 	}else{
 		os << "             \t";

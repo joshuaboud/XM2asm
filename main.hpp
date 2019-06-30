@@ -23,4 +23,7 @@
 extern unsigned int START; // starting memory location for loader
 // modified by END directive
 
+void printListFile(std::string baseFileName, time_t timestamp,
+std::string srcName);
+
 #endif

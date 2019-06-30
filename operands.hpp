@@ -51,5 +51,6 @@ std::string getOperand(std::string & operands);
 
 int decodeConst(int val);
 // Returns 3 bit encoding for passed constant as an integer
+// returns -1 on invalid constant
 
 #endif

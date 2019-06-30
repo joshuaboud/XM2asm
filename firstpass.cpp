@@ -199,7 +199,6 @@ int & tblSub, int & memLoc){
 	}
 	
 	// get first operand
-	std::cout << "start: " << token << std::endl;
 	operand = getOperand(token);
 	
 	bool labelResult;
@@ -226,7 +225,7 @@ int & tblSub, int & memLoc){
 		!(labelResult || constResult)){ // invalid lbl
 			// if not a register or label and not a valid label or constant
 			err = INV_OP1;
-		}else if(sym != NULL && sym->type == LBL){ // if known label
+		}else if(sym != NULL && sym->type != REG){ // if known label
 			if(!validConstant(sym->value)){ // check that value is const
 				err = INV_OP1;
 			}
@@ -709,8 +708,6 @@ int & tblSub, int & memLoc){
 		}
 		break;
 	case V_R:
-		std::cout << "OP1: " << operand << std::endl;
-		std::cout << "left: " << token << std::endl;
 		valueResult = validValue(operand);
 		labelResult = validLabel(operand);
 		// check first operand
@@ -734,8 +731,6 @@ int & tblSub, int & memLoc){
 		}
 		//check second operand
 		operand = getOperand(token);
-		std::cout << "OP2: " << operand << std::endl;
-		std::cout << "left: " << token << std::endl;
 		if((sym = checkTable(symtbl, operand)) != NULL && sym->type != REG){
 			// if operand is not a register
 			err = INV_OP2;
@@ -791,6 +786,7 @@ int & memLoc, std::string label){
 		}
 		break;
 	case BSS:
+		memLoc_ = memLoc; // save memLoc
 		// if a label is present, it will already be assiciated with
 		// block from checkFirstToken().
 		operand = getOperand(token);

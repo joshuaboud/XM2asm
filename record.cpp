@@ -19,15 +19,17 @@ void initRecords(Record *& head){
 	records_end = NULL;
 }
 
-void pushRecord(Record *& head, int lineNum, string rec, \
-string error, int memLoc){
-	if(!error.empty())
+void pushRecord(Record *& head, int lineNum, std::string rec, \
+ErrorEnum error, int tblSub, int memLoc, unsigned short opcode){
+	if(error != NO_ERR) // an error was passed
 		ERROR_FLAG = true;
 	Record * temp = new Record;
 	temp->lineNum = lineNum;
+	temp->cmdSubScr = tblSub;
 	temp->memLoc = memLoc;
 	temp->record = rec;
 	temp->error = error;
+	temp->opcode = opcode;
 	temp->next = head;
 	temp->prev = NULL;
 	if(head != NULL) // guard seg fault
@@ -38,21 +40,28 @@ string error, int memLoc){
 	}
 }
 
-ostream & operator<<(ostream & os, const Record * rec){
-	os << setw(3) << rec->lineNum;
+std::ostream & operator<<(std::ostream & os, const Record * rec){
+	os << std::setw(3) << rec->lineNum;
 	if(rec->memLoc >= 0){
-		os << "   0x" << setfill('0') << setw(4); // print as 0xNNNN padded w/ 0
-		os << hex << rec->memLoc << dec << " \t"; // print formatted hex
-		os << setfill(' '); // clear setw fill
+		os << "   0x" << std::setfill('0'); // print as 0xNNNN padded w/ 0
+		// print formatted hex
+		os << std::uppercase; // A-F instead of a-f
+		os << std::hex << std::setw(4) << rec->memLoc;
+		os << " 0x" << std::setw(4) << rec->opcode << std::dec << " \t";
+		os << std::setfill(' '); // clear setw fill
 	}else{
-		os << "          \t";
+		os << "             \t";
 	}
 	os << rec->record;
-	(rec->error.empty())? os << endl : os << "\t!!! " << rec->error << endl;
+	if(rec->error == -1){
+		os << std::endl;
+	}else{
+		os << "\t!!! ERROR: " << Error[rec->error] << std::endl;
+	}
 	return os;
 }
 
-void printRecords(ostream & os){
+void printRecords(std::ostream & os){
 	Record * itr = records_end;
 	while(itr != NULL){
 		os << itr;
@@ -73,13 +82,28 @@ void destroyRecords(Record * head){
 	}
 }
 
-string getNextToken(istringstream & record){
-	string token;
+std::string getNextToken(std::istringstream & record){
+	std::string token = "";
 	
 	// to handle ' ' (space):
 	record >> std::ws; // eat whitespace to peek at '
 	if(record.peek() == '\''){ // next token will be char
-		getline(record, token, ';'); // grab until ';' or newline
+		token.push_back(record.get()); // store first '
+		if(record.peek() == '\\'){
+			token.push_back(record.get()); // escaped char
+		}
+		token.push_back(record.get()); // store char
+		if(record.peek() == '\''){
+			token.push_back(record.get()); // store terminating '
+		} else {
+			record.clear(); // error, not a char
+			return "";
+		}
+		if(!record.eof()){ // if not end of record, push back the rest
+			std::string temp;
+			record >> temp;
+			token.append(temp);
+		}
 		return token;
 	}
 	

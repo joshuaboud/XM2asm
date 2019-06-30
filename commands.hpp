@@ -12,19 +12,12 @@
 #define COMMANDS_H
 
 #include <string>
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-
 
 #include <string.h> // for strcmp
 
 #include "operands.hpp"
 
 #define CMD_TBL_SIZE 83
-#define CHAR_LEN 3
-#define ESC_CHAR_LEN 4
-#define ESC_CHARS 8
 #define CMD_NOT_FOUND -1
 
 enum Command_type { DIR, INST };
@@ -57,25 +50,5 @@ typedef enum {
 int checkTable(Command (& tbl)[CMD_TBL_SIZE], std::string mnemonic);
 // Returns positional subscript of array element by name,
 // or -1 if element not found. Uses binary search.
-
-bool validValue(std::string operand);
-// Returns true if operand passed is a valid value:
-// [ # + (-) + { [0..9] } | $ + { [0..9 | A..F] } | ' + char + ' ]
-
-int extractValue(std::string operand);
-//	Returns integer value of string passed.
-
-bool validConstant(std::string operand);
-bool validConstant(short operand);
-// Returns true if operand is "#0", "#1", "#2", "#4", "#8", "#16", "#32",
-// "#-1", "$0", "$1", "$2", "$4", "$8", "$10", "$20", or "$FF". Else
-// returns false. Overloaded for case where checking against symbol,
-// where symbol->value is of type short.
-
-std::string getOperand(std::string & operands);
-// Extracts operands delimited by commas until end of record is reached.
-// Erases extracted operand from string of operands, so each time it is
-// called, the next operand will be extracted until the end of the string
-// is reached, similar to strtok() from the C standard library.
 
 #endif

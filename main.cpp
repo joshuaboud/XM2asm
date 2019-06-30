@@ -59,7 +59,7 @@ int main(int argc, char ** argv){
 	
 	// first pass exit actions:
 	// create list file
-	listFile << "X-Makina Assembler V 2.0" << std::endl;
+	listFile << "X-Makina Assembler V 1.1" << std::endl;
 	listFile << "File opened: \"" << srcName << "\"" << std::endl;
 	listFile << "Time of execution: " << ctime(& timestamp) << std::endl;
 	printRecords(listFile);

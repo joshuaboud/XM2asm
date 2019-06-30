@@ -1,3 +1,11 @@
+/* File name: error.cpp
+ * Author: Josh Boudreau
+ * School: Dalhousie University
+ * Course: ECED 3403 - Computer Architecture
+ * Purpose: Provide a table of errors with enumeration
+ * Last Modified: 2019-06-29
+ */
+
 #include "error.hpp"
 
 std::string Error[NUM_OF_ERRORS] = {
@@ -16,10 +24,10 @@ std::string Error[NUM_OF_ERRORS] = {
 	"Instruction takes CEX flag as first operand.",
 	"Invalid third operand.",
 	"Operand value out of bounds.",
-	"Unkown operand type (this should not happen)",
-	"Extraneous operand(s)",
-	"Non-comment garbage",
-	"Operand must be positive value",
+	"Unkown operand type (this should not happen).",
+	"Extraneous operand(s).",
+	"Non-comment garbage.",
+	"Operand must be positive value.",
 	"END operand must refer to label or mem location.",
 	"Operand cannot be forward reference."
 };

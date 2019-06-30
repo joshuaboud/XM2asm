@@ -49,4 +49,7 @@ std::string getOperand(std::string & operands);
 // called, the next operand will be extracted until the end of the string
 // is reached, similar to strtok() from the C standard library.
 
+int decodeConst(int val);
+// Returns 3 bit encoding for passed constant as an integer
+
 #endif

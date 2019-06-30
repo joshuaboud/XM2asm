@@ -185,3 +185,24 @@ std::string getOperand(std::string & operands){
 	
 	return operand;
 }
+
+int decodeConst(int val){
+	switch(val){
+	case 0:
+		return 0;
+	case 1:
+		return 1;
+	case 2:
+		return 2;
+	case 4:
+		return 3;
+	case 8:
+		return 4;
+	case 16:
+		return 5;
+	case 32:
+		return 6;
+	case -1:
+		return 7;
+	}
+}

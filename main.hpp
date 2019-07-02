@@ -5,7 +5,7 @@
  * Purpose: Includes necessary headers to init symbol table and command
  * 			table, and to call state machines. Includes ctime and chrono
  * 			to grab timestamp for list file.
- * Last Modified: 2019-06-02
+ * Last Modified: 2019-06-31
  */
 
 #ifndef MAIN_H
@@ -20,10 +20,12 @@
 #include "record.hpp"
 #include "secondpass.hpp"
 
+enum Pass { FP, SP };
+
 extern unsigned int START; // starting memory location for loader
 // modified by END directive
 
 void printListFile(std::string baseFileName, time_t timestamp,
-std::string srcName);
+std::string srcName, Pass pass);
 
 #endif

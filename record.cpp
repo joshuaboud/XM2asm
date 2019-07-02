@@ -5,7 +5,7 @@
  * Purpose: Defines functions to be used with records and the record
  * 			linked list, as well as defines the beginning and end of the
  * 			record linked list.
- * Last Modified: 2019-06-02
+ * Last Modified: 2019-06-29
  */
 
 #include "record.hpp"

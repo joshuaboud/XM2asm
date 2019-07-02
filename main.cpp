@@ -5,7 +5,7 @@
  * Purpose: Open the source module, list file, initialize global tables,
  * and call state machines for first and second pass. Create list file
  * after first pass completes.
- * Last Modified: 2019-06-02
+ * Last Modified: 2019-06-31
  */
 
 // uncomment following line to send output stdout
@@ -46,17 +46,15 @@ int main(int argc, char ** argv){
 	
 	// first pass exit actions:
 	// create list file
-	printListFile(baseFileName, timestamp, srcName);
+	printListFile(baseFileName, timestamp, srcName, FP);
 	
 	
 	if(!ERROR_FLAG){
 		std::cout << "First pass finished with no errors." << std::endl;
 		// call second pass here
-		secondPassStateMachine();
-		printListFile(baseFileName, timestamp, srcName);
+		secondPassStateMachine(baseFileName);
+		printListFile(baseFileName, timestamp, srcName, SP);
 	}
-	
-	
 	
 	// free symtbl
 	destroySymTbl(symtbl);
@@ -65,13 +63,11 @@ int main(int argc, char ** argv){
 	
 	source.close();
 	
-	
-	
 	return 0;
 }
 
 void printListFile(std::string baseFileName, time_t timestamp,
-std::string srcName){
+std::string srcName, Pass pass){
 	#ifdef DEBUG
 	#define listFile cout // print to console instead of list file
 	#else
@@ -90,16 +86,39 @@ std::string srcName){
 	printRecords(listFile);
 	listFile << std::endl;
 	printSymTbl(listFile);
-	listFile << "Starting memory location: 0x" << std::hex << START << std::endl;
+	listFile << "Starting memory location: 0x" << std::hex << START <<
+	std::endl;
 	
-	if(ERROR_FLAG){
-		listFile << "Errors were detected. Stopping after first pass." << std::endl;
-		// finished with errors
-		std::cout << "First pass finished with one or more errors." << std::endl;
-		std::cout << "Check \"" << listFileName << "\" for details." << std::endl;
-	}else{
-		listFile << "First pass finished with no errors." << std::endl;
+	switch(pass){
+	case FP:
+		if(ERROR_FLAG){
+			listFile << "Errors were detected. Stopping after first pass." <<
+			std::endl;
+			// finished with errors
+			std::cout << "First pass finished with one or more errors." <<
+			std::endl;
+			std::cout << "Check \"" << listFileName << "\" for details." <<
+			std::endl;
+		}else{
+			listFile << "First pass finished with no errors." << std::endl;
+		}
+		break;
+	case SP:
+		if(ERROR_FLAG){
+			listFile << "Errors were detected during second pass." <<
+			std::endl;
+			// finished with errors
+			std::cout << "Second pass finished with one or more errors." <<
+			std::endl;
+			std::cout << "Check \"" << listFileName << "\" for details." <<
+			std::endl;
+		}else{
+			listFile << "First and second pass finished with no errors." <<
+			std::endl;
+		}
+		break;
 	}
+	
 	#ifndef DEBUG
 	listFile.close();
 	#endif

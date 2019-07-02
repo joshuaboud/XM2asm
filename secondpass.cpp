@@ -1,19 +1,32 @@
+/* File name: secondpass.cpp
+ * Author: Josh Boudreau
+ * School: Dalhousie University
+ * Course: ECED 3403 - Computer Architecture
+ * Purpose: Second pass state machine
+ * Last Modified: 2019-07-01
+ */
+
 #include "secondpass.hpp"
 
 #define IS_BYTE(x) ((x & ~0xFF) == 0)
+#define IS_WORD(x) ((x & ~0xFFFF) == 0)
+#define HIGH_BYTE(x) ((x >> 8) & 0xFF)
+#define LOW_BYTE(x) (x & 0xFF)
+#define BYTE_MASK(x) (x & 0xFF)
+#define WORD_MASK(x) (x & 0xFFFF)
+
+#define SREC_BYTECNT 32
 
 SPState spstate;
 
 bool END_OF_SECOND_PASS;
 
-void secondPassStateMachine(){
+void secondPassStateMachine(std::string baseFileName){
 	spstate = CHK_FIRST_TOK;
 	END_OF_SECOND_PASS = false;
 	
 	Record * record = NULL;
 	std::istringstream recordStream;
-	
-	int tblSub;
 	
 	while(!END_OF_SECOND_PASS){
 		switch(spstate){
@@ -29,16 +42,16 @@ void secondPassStateMachine(){
 					break;
 				}
 			}
-			chkFirstTok(record, recordStream, tblSub);
+			chkFirstTok(record, recordStream);
 			break;
 		case PROC_DIR:
 			procDir(record, recordStream);
 			break;
 		case PROC_INST_OPS:
-			procInstOps(record, recordStream, tblSub);
+			procInstOps(record, recordStream);
 			break;
 		case GEN_S_RECS:
-			genSRecs();
+			genSRecs(baseFileName);
 			break;
 		default:
 			break;
@@ -46,8 +59,7 @@ void secondPassStateMachine(){
 	}
 }
 
-void chkFirstTok(Record * record, std::istringstream & recordStream,
-int & tblSub){
+void chkFirstTok(Record * record, std::istringstream & recordStream){
 	// open record string as string stream
 	recordStream.clear(); // unset eof bit
 	recordStream.str(record->record); // init stream
@@ -63,11 +75,10 @@ int & tblSub){
 		// comment, skip record
 		return;
 	}
-	tblSub = record->cmdSubScr;
-	if(tblSub != CMD_NOT_FOUND){
-		// save table subscript in record struct
-		record->cmdSubScr = tblSub;
-		switch(commands[tblSub].type){
+	// save table subscript in record struct
+	record->cmdSubScr = checkTable(commands, token);
+	if(record->cmdSubScr != CMD_NOT_FOUND){
+		switch(commands[record->cmdSubScr].type){
 		case INST:
 			spstate = PROC_INST_OPS;
 			return;
@@ -82,218 +93,72 @@ int & tblSub){
 }
 
 void procDir(Record * record, std::istringstream & recordStream){
-	spstate = CHK_FIRST_TOK;
-	return;
-}
-
-void procInstOps(Record * record, std::istringstream & recordStream,
-int & tblSub){
 	// grab operands
 	std::string operands = getNextToken(recordStream);
 	std::string operand = getOperand(operands);
 	
 	Symbol * symPtr;
+	switch(record->cmdSubScr){
+	case BYTE:
+	case WORD:
+	{
+		int value;
+		symPtr = checkTable(symtbl, operand);
+		if(symPtr != NULL){
+			// symbol found
+			value = symPtr->value;
+		}else{
+			// regular value
+			value = extractValue(operand);
+		}
+		if((record->cmdSubScr == BYTE && IS_BYTE((unsigned short)value)) ||
+		(record->cmdSubScr == WORD && IS_WORD((unsigned short)value))){
+			record->opcode = value;
+		}else{
+			// out of bounds error
+			record->error = OUT_BOUND;
+		}
+		break;
+	}
+	default:
+		break;
+	}
+	spstate = CHK_FIRST_TOK;
+	return;
+}
+
+void procInstOps(Record * record, std::istringstream & recordStream){
+	// grab operands
+	std::string operands = getNextToken(recordStream);
 	
-	switch(commands[tblSub].ops){
+	switch(commands[record->cmdSubScr].ops){
 	case CR_R:
 	case R_R:
-	{
-		union arith_op tempOp;
-		// set base opcode, wb built in
-		tempOp.opcode = commands[tblSub].baseOp;
-		// fill in rest
-		if((symPtr = checkTable(symtbl,operand)) != NULL){
-			// operand in symtbl
-			switch(symPtr->type){
-			case REG:
-				// set rc bit to register
-				tempOp.bf.rc = r;
-				tempOp.bf.src = symPtr->value;
-				break;
-			case LBL:
-			{
-				// set rc bit to const
-				tempOp.bf.rc = c;
-				// save constant encoding
-				int tempConst = decodeConst(symPtr->value);
-				if(tempConst == -1){
-					// invalid constant
-					record->error = INV_CONST;
-					spstate = CHK_FIRST_TOK;
-					return;
-				}else{
-					tempOp.bf.src = tempConst;
-				}
-				break;
-			}
-			default:
-				// unknown symbol type
-				record->error = UNK_SYM;
-				break;
-			}
-		}else{ // regular constant
-			tempOp.bf.rc = c;
-			int tempConst = decodeConst(extractValue(operand));
-			if(tempConst == -1){
-				// invalid constant
-				record->error = INV_CONST;
-				spstate = CHK_FIRST_TOK;
-				return;
-			}else{
-				tempOp.bf.src = tempConst;
-			}
-		}
-		// get next operand, should be register
-		operand = getOperand(operands);
-		symPtr = checkTable(symtbl,operand);
-		if(symPtr != NULL && symPtr->type == REG){
-			// symbol found
-			tempOp.bf.dst = symPtr->value;
-		}else{
-			// error if sym not found or sym not reg
-			record->error = INV_OP2;
-			spstate = CHK_FIRST_TOK;
-			return;
-		}
-		// save opcode in record
-		record->opcode = tempOp.opcode;
-		spstate = CHK_FIRST_TOK;
+		arith(record, operands);
 		return;
-	}
 	case V_R:
-	{
-		union reginit_op tempOp;
-		tempOp.opcode = commands[tblSub].baseOp;
-		// first operand
-		int val;
-		if((symPtr = checkTable(symtbl,operand)) != NULL){
-			// symbol
-			val = symPtr->value;
-		}else{ // regular value
-			int val = extractValue(operand);
-		}
-		if(IS_BYTE(val)){
-			tempOp.bf.byte = symPtr->value;
-		}else{ // operand out of bounds
-			record->error = OUT_BOUND;
-			spstate = CHK_FIRST_TOK;
-			return;
-		}
-		// second operand
-		operand = getOperand(operands);
-		symPtr = checkTable(symtbl,operand);
-		tempOp.bf.dst = symPtr->value;
-		record->opcode = tempOp.opcode;
-		spstate = CHK_FIRST_TOK;
+		reginit(record, operands);
 		return;
-	}
 	case R:
-	{
-		union singr_op tempOp;
-		tempOp.opcode = commands[tblSub].baseOp;
-		symPtr = checkTable(symtbl,operand);
-		if(symPtr != NULL){
-			tempOp.bf.dst = symPtr->value;
-		}else{ // reg not found
-			record->error = INV_OP1;
-		}
-		record->opcode = tempOp.opcode;
-		spstate = CHK_FIRST_TOK;
+		singr(record, operands);
 		return;
-	}
 	case BRA_:
 	case BRA13:
-	{
-		int label;
-		symPtr = checkTable(symtbl,operand);
-		if(symPtr != NULL){
-			// symbol found
-			label = symPtr->value;
-		}else{
-			// non-label value
-			label = extractValue(operand);
-		}
-		
-		// encode offset
-		int dist = label - (record->memLoc + 2);
-		if(dist % 2 != 0){
-			// branch to uneven address
-			record->error = BRA_UNEV;
-		}
-		int offset = dist >> 1;
-		if(commands[tblSub].ops == BRA_ && -1024 <= offset <= 1022){
-			union bra10_op tempOp;
-			tempOp.opcode = commands[tblSub].baseOp;
-			tempOp.bf.off = offset;
-			record->opcode = tempOp.opcode;
-		}else if (commands[tblSub].ops == BRA13 &&
-		-8192 <= offset <= 8190){
-			union bra13_op tempOp;
-			tempOp.opcode = commands[tblSub].baseOp;
-			tempOp.bf.off = offset;
-			record->opcode = tempOp.opcode;
-		}else{
-			record->error = OUT_BOUND;
-		}
-		spstate = CHK_FIRST_TOK;
-		std::cout << "BRA OFF: " << offset << std::endl;
+		bra(record, operands);
 		return;
-	}
 	case LD_:
 	case ST_:
-	{
-		union mem_op tempOp;
-		tempOp.opcode = commands[tblSub].baseOp;
-		if(commands[tblSub].ops == ST_){
-			symPtr = checkTable(symtbl,operand);
-			tempOp.bf.src = symPtr->value;
-			operand = getOperand(operands);
-		}
-		
-		if(operand[0] == '+'){
-			operand = operand.substr(1,operand.length()-1); // pop off +
-			tempOp.bf.prpo = pr;
-			tempOp.bf.inc = true;
-		}else if(operand[0] == '-'){
-			operand = operand.substr(1,operand.length()-1); // pop off -
-			tempOp.bf.prpo = pr;
-			tempOp.bf.dec = true;
-		}
-		if(operand.back() == '+'){
-			operand.pop_back(); // pop off +
-			tempOp.bf.prpo = po;
-			tempOp.bf.inc = true;
-		}else if(operand.back() == '-'){
-			operand.pop_back(); // pop off -
-			tempOp.bf.prpo = po;
-			tempOp.bf.dec = true;
-		}
-		
-		symPtr = checkTable(symtbl,operand);
-		
-		if(commands[tblSub].ops == ST_){
-			tempOp.bf.dst = symPtr->value;
-		}else{ // LD
-			tempOp.bf.src = symPtr->value;
-			operand = getOperand(operands);
-			symPtr = checkTable(symtbl,operand);
-			tempOp.bf.dst = symPtr->value;
-		}
-		
-		record->opcode = tempOp.opcode;
-		
-		spstate = CHK_FIRST_TOK;
+		mem(record, operands);
 		return;
-	}
-	case LDR_:
 	case STR_:
-		spstate = CHK_FIRST_TOK;
+	case LDR_:
+		memr(record, operands);
 		return;
 	case SA:
-		spstate = CHK_FIRST_TOK;
+		svc(record, operands);
 		return;
-	case CEX:
-		spstate = CHK_FIRST_TOK;
+	case CEX_:
+		cex(record, operands);
 		return;
 	default:
 		record->error = SEC_PASS_NO_CMD;
@@ -302,8 +167,105 @@ int & tblSub){
 	}
 }
 
-void genSRecs(){
-	std::cout << "Done second pass." << std::endl;
+void genSRecs(std::string baseFileName){
+	if(ERROR_FLAG){
+		return;
+	}
+	
+	std::ofstream srec(baseFileName + ".xme");
+	if(!srec){
+		std::cout << "Error creating S-Record file." << std::endl;
+		return;
+	}
+	// generate S0 record name
+	// max s-rec length is 32, subtract 2 bytes for memloc and 1 byte
+	// for chksum. Truncating filename to this length or less.
+	std::string s0name = baseFileName.substr(0,SREC_BYTECNT - 3);
+	
+	int byteCnt = 0;
+	char chkSum = 0;
+	
+	// s0 record
+	byteCnt = 2; // 0000 memloc
+	for(char c : s0name){;
+		byteCnt++;
+		chkSum += c;
+	}
+	byteCnt++; // chkSum
+	chkSum += byteCnt;
+	chkSum = ~chkSum;
+	// print s0
+	srec << "S0" << std::setw(2) << std::setfill('0') << std::hex <<
+	byteCnt << "0000" << s0name <<
+	std::setw(2) << std::setfill('0') << BYTE_MASK((int)chkSum) << std::endl;
+	
+	// print s1's
+	char sBuff[SREC_BYTECNT];
+	int prevMemLoc;
+	bool done = false;
+	Record * record = records_end; //start at first record
+	// find first record with a memory location
+	while(record->memLoc == NO_MEMLOC && record->next != NULL){
+		// skip non inst or data recs
+		record = record->next;
+	}
+	if(record != NULL){
+		prevMemLoc = record->memLoc;
+	}else{
+		return;
+	}
+	std::cout << record->record << std::endl;
+	byteCnt = 0;
+	sBuff[byteCnt++] = HIGH_BYTE(record->memLoc);
+	sBuff[byteCnt++] = LOW_BYTE(record->memLoc);
+	while(!done){
+		while(record != NULL && record->memLoc == NO_MEMLOC){
+			// skip non inst or data recs
+			record = record->next;
+		}
+		if((record == NULL || record->memLoc > prevMemLoc + 2) ||
+		byteCnt >= SREC_BYTECNT - 1){ // minus 1 for chksum
+			// flush srec
+			srec << "S1" << std::hex << std::setw(2) <<
+			std::setfill('0') << byteCnt + 1; // plus one for chksum
+			for(int i = 0; i < byteCnt; i++){
+				srec << std::hex << std::setw(2) << std::setfill('0') <<
+				BYTE_MASK((int)sBuff[i]);
+			}
+			byteCnt++;
+			chkSum += byteCnt;
+			chkSum = ~chkSum;
+			srec << std::hex << std::setw(2) << std::setfill('0') <<
+			BYTE_MASK((int)chkSum) << std::endl;
+			// reinit sBuff etc
+			byteCnt = 0;
+			chkSum = 0;
+			if(record != NULL){
+				sBuff[byteCnt++] = HIGH_BYTE(record->memLoc);
+				sBuff[byteCnt++] = LOW_BYTE(record->memLoc);
+				prevMemLoc = record->memLoc;
+			}else{
+				done = true;
+				break;
+			}
+		}
+		sBuff[byteCnt++] = LOW_BYTE(record->opcode);
+		sBuff[byteCnt++] = HIGH_BYTE(record->opcode);
+		prevMemLoc = record->memLoc;
+		record = record->next;
+	}
+	
+	// S9 record
+	chkSum = 0;
+	srec << "S903";
+	chkSum += 03 + LOW_BYTE(START) + HIGH_BYTE(START);
+	chkSum = ~chkSum;
+	srec << std::hex << std::setw(4) << std::setfill('0') <<
+	WORD_MASK((int)START) << std::setw(2) << BYTE_MASK((int)chkSum) <<
+	std::endl;
+	
+	srec.close();
+	
 	END_OF_SECOND_PASS = true;
 	return;
 }

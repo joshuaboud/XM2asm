@@ -4,7 +4,7 @@
  * Course: ECED 3403 - Computer Architecture
  * Purpose: Necessary includes and declarations for record.cpp.
  * 			Include this file to access the global record list.
- * Last Modified: 2019-06-03
+ * Last Modified: 2019-06-29
  */
 
 #ifndef RECORD_H

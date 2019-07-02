@@ -76,7 +76,7 @@ bool validValue(std::string operand){
 			}else{ // check if next char is valid escape char
 				ch = operand[2]; // get next char after '\\'
 				for(i = 0; i < ESC_CHARS; i++){
-					if(ch == escapeChars[i][ESC_KEY])
+					if(ch == escapeChars[i][KEY])
 						return true; // char is valid escape char
 				}
 				// if we make it past the for loop,
@@ -115,9 +115,9 @@ int extractValue(std::string operand){
 			break;
 		case 2: // escaped
 			for(int i = 0; i < ESC_CHARS; i++){
-				if(operand[1] == escapeChars[i][ESC_KEY]){
+				if(operand[1] == escapeChars[i][KEY]){
 					// find operand in escapees list
-					value = (int)escapeChars[i][ESC_VAL];
+					value = (int)escapeChars[i][VAL];
 					break;
 				}
 			}
@@ -125,7 +125,6 @@ int extractValue(std::string operand){
 		}
 		break;
 	}
-	std::cout << "ExtractValue: " << operand << " = " << value << std::endl;
 	return value;
 }
 
@@ -170,7 +169,8 @@ std::string getOperand(std::string & operands){
 			delimiterPos = operands.find_last_of('\'') + 1;
 			break;
 		default:
-			delimiterPos = operands.find(' '); // maybe followed by space delim garbage
+			// maybe followed by space delim garbage
+			delimiterPos = operands.find(' ');
 			if(delimiterPos == std::string::npos){ // no space
 				operand = operands;
 				operands.erase(0, operands.length());
@@ -208,4 +208,13 @@ int decodeConst(int val){
 	default:
 		return -1;
 	}
+}
+
+int decodeCEX(std::string flag){
+	for(int i = 0; i < CEX_FLAG_CNT; i++){
+		if(cexFlags[i].flag == flag){
+			return cexFlags[i].encoding;
+		}
+	}
+	return -1;
 }

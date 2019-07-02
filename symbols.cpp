@@ -5,7 +5,7 @@
  * Purpose: Defines functions to be used with symbols and the symbol
  * 			table, as well as defines the beginning and end of the
  * 			symbol table linked list.
- * Last Modified: 2019-06-02
+ * Last Modified: 2019-06-29
  */
 
 #include "symbols.hpp"

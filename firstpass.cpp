@@ -6,7 +6,7 @@
  * 			file stream passed to it, builds a symbol table, and verifies
  * 			that there are no errors. All state changes are controlled
  * 			in this file.
- * Last Modified: 2019-06-03
+ * Last Modified: 2019-06-29
  */
 
 #include "firstpass.hpp"

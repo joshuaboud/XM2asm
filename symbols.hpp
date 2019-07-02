@@ -4,7 +4,7 @@
  * Course: ECED 3403 - Computer Architecture
  * Purpose: Necessary includes and declarations for symbols.cpp.
  * 			Include this file to access the global symbol table.
- * Last Modified: 2019-06-02
+ * Last Modified: 2019-06-29
  */
 
 #ifndef SYMBOLS_H

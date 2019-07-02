@@ -4,7 +4,7 @@
  * Course: ECED 3403 - Computer Architecture
  * Purpose: Necessary includes and declarations for firstpass.cpp.
  * 			Inlude this file to call the first pass state machine.
- * Last Modified: 2019-06-03
+ * Last Modified: 2019-06-29
  */
 
 #ifndef FIRSTPASS_H
@@ -21,6 +21,8 @@
 #include "error.hpp"
 #include "operands.hpp"
 #include "main.hpp" // to modify starting location
+
+#define NO_MEMLOC -1
 
 enum FPState { CHECK_FIRST_TOKEN, CHECK_INST_DIR, CHECK_DIR, \
 	CHECK_INST };	//	state machine control for first pass

@@ -5,7 +5,7 @@
  * Purpose: Defines list of commands (instructions + directives), along
  * 			with definitions of functions to be used with instructions
  * 			or directives.
- * Last Modified: 2019-06-03
+ * Last Modified: 2019-06-29
  */
 
 #include "commands.hpp"

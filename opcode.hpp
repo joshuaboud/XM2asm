@@ -1,5 +1,21 @@
+/* File name: opcode.hpp
+ * Author: Josh Boudreau
+ * School: Dalhousie University
+ * Course: ECED 3403 - Computer Architecture
+ * Purpose: Functions to generate opcodes and opcode unions/bitfields
+ * Last Modified: 2019-06-31
+ */
+
 #ifndef OPCODE_H
 #define OPCODE_H
+
+#include <string>
+
+#include "record.hpp"
+#include "operands.hpp"
+#include "symbols.hpp"
+#include "secondpass.hpp"
+#include "commands.hpp"
 
 enum { r = 0, c };
 enum { w = 0, b };
@@ -111,5 +127,15 @@ union cex_op {
 	unsigned short opcode;
 	struct cex_bf bf;
 };
+
+void arith(Record * record, std::string & operands);
+void reginit(Record * record, std::string & operands);
+void singr(Record * record, std::string & operands);
+void mem(Record * record, std::string & operands);
+void bra(Record * record, std::string & operands);
+void memr(Record * record, std::string & operands);
+void svc(Record * record, std::string & operands);
+void cex(Record * record, std::string & operands);
+// Processes operands and instruction into opcode stored in Record struct
 
 #endif

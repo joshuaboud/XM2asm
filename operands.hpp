@@ -14,6 +14,9 @@
 #include <sstream>
 #include <iomanip>
 
+enum { KEY, VAL }; // for table lookups
+
+#define NOT_FOUND -1
 #define CONST_CNT 8
 #define CHAR_LEN 3
 #define ESC_CHAR_LEN 4
@@ -26,7 +29,6 @@ typedef struct{
 extern CEX_Flag cexFlags[CEX_FLAG_CNT];
 
 #define ESC_CHARS 8
-enum {ESC_KEY, ESC_VAL};
 extern char escapeChars[ESC_CHARS][2];
 
 bool validValue(std::string operand);
@@ -52,5 +54,9 @@ std::string getOperand(std::string & operands);
 int decodeConst(int val);
 // Returns 3 bit encoding for passed constant as an integer
 // returns -1 on invalid constant
+
+int decodeCEX(std::string flag);
+// Returns encoding for CEX flag
+// returns -1 on invalid flag
 
 #endif

@@ -8,6 +8,10 @@
 
 #include "error.hpp"
 
+bool ERROR_FLAG; // is set when pushRecord() is passed a non-empty error
+// message. When the first pass is complete, the assembler will not
+// continue to the second pass if this flag is set.
+
 std::string Error[NUM_OF_ERRORS] = {
 	"Empty record.",
 	"Invalid label.",

@@ -96,6 +96,9 @@ bool validValue(std::string operand){
 
 int extractValue(std::string operand){
 	int value;
+	for(int i = 0; i < (int)operand.length(); i++){
+		operand[i] = tolower(operand[i]);
+	}
 	std::istringstream ss(operand); // open string as input stream
 	char type = ss.get(); // pop first character, either #, $, '
 	

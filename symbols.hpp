@@ -14,6 +14,8 @@
 #include <iomanip>
 #include <string>
 
+#include "error.hpp"
+
 enum Symbol_type { LBL, REG, UNK };
 
 struct Symbol { // doubly linked list node
@@ -29,7 +31,6 @@ struct Symbol { // doubly linked list node
 extern Symbol * symtbl; // doubly linked list to hold symbols
 extern Symbol * symtbl_end; // see above, print FIFO
 
-extern bool ERROR_FLAG;
 
 Symbol * checkTable(Symbol * head, std::string name);
 // Returns pointer to found element by name,

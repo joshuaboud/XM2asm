@@ -15,7 +15,8 @@
 #define BYTE_MASK(x) (x & 0xFF)
 #define WORD_MASK(x) (x & 0xFFFF)
 
-#define SREC_BYTECNT 32
+// 32 + 2 because the memory location is not included in max bytes
+#define SREC_BYTECNT 32 + 2
 
 SPState spstate;
 
@@ -87,6 +88,7 @@ void chkFirstTok(Record * record, std::istringstream & recordStream){
 			return;
 		default:
 			record->error = SEC_PASS_NO_CMD;
+			ERROR_FLAG = true;
 			return;
 		}
 	}
@@ -124,6 +126,9 @@ void procDir(Record * record, std::istringstream & recordStream){
 		break;
 	}
 	spstate = CHK_FIRST_TOK;
+	if(record->error != NO_ERR){
+		ERROR_FLAG = true;
+	}
 	return;
 }
 
@@ -135,40 +140,45 @@ void procInstOps(Record * record, std::istringstream & recordStream){
 	case CR_R:
 	case R_R:
 		arith(record, operands);
-		return;
+		break;
 	case V_R:
 		reginit(record, operands);
-		return;
+		break;
 	case R:
 		singr(record, operands);
-		return;
+		break;
 	case BRA_:
 	case BRA13:
 		bra(record, operands);
-		return;
+		break;
 	case LD_:
 	case ST_:
 		mem(record, operands);
-		return;
+		break;
 	case STR_:
 	case LDR_:
 		memr(record, operands);
-		return;
+		break;
 	case SA:
 		svc(record, operands);
-		return;
+		break;
 	case CEX_:
 		cex(record, operands);
-		return;
+		break;
 	default:
 		record->error = SEC_PASS_NO_CMD;
 		spstate = CHK_FIRST_TOK;
-		return;
+		break;
 	}
+	if(record->error != NO_ERR){
+		ERROR_FLAG = true;
+	}
+	return;
 }
 
 void genSRecs(std::string baseFileName){
 	if(ERROR_FLAG){
+		END_OF_SECOND_PASS = true;
 		return;
 	}
 	
@@ -178,9 +188,9 @@ void genSRecs(std::string baseFileName){
 		return;
 	}
 	// generate S0 record name
-	// max s-rec length is 32, subtract 2 bytes for memloc and 1 byte
-	// for chksum. Truncating filename to this length or less.
-	std::string s0name = baseFileName.substr(0,SREC_BYTECNT - 3);
+	// max s-rec length is 32, subtract 2 bytes for memloc
+	// Truncating filename to this length or less.
+	std::string s0name = baseFileName.substr(0,SREC_BYTECNT - 2);
 	
 	int byteCnt = 0;
 	char chkSum = 0;
@@ -214,7 +224,6 @@ void genSRecs(std::string baseFileName){
 	}else{
 		return;
 	}
-	std::cout << record->record << std::endl;
 	byteCnt = 0;
 	sBuff[byteCnt++] = HIGH_BYTE(record->memLoc);
 	sBuff[byteCnt++] = LOW_BYTE(record->memLoc);
@@ -224,7 +233,7 @@ void genSRecs(std::string baseFileName){
 			record = record->next;
 		}
 		if((record == NULL || record->memLoc > prevMemLoc + 2) ||
-		byteCnt >= SREC_BYTECNT - 1){ // minus 1 for chksum
+		byteCnt >= SREC_BYTECNT){
 			// flush srec
 			srec << "S1" << std::hex << std::setw(2) <<
 			std::setfill('0') << byteCnt + 1; // plus one for chksum
@@ -249,8 +258,12 @@ void genSRecs(std::string baseFileName){
 				break;
 			}
 		}
-		sBuff[byteCnt++] = LOW_BYTE(record->opcode);
-		sBuff[byteCnt++] = HIGH_BYTE(record->opcode);
+		if(record->cmdSubScr == BYTE){
+			sBuff[byteCnt++] = LOW_BYTE(record->opcode);
+		}else{
+			sBuff[byteCnt++] = LOW_BYTE(record->opcode);
+			sBuff[byteCnt++] = HIGH_BYTE(record->opcode);
+		}
 		prevMemLoc = record->memLoc;
 		record = record->next;
 	}

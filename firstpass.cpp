@@ -20,9 +20,6 @@
 FPState fpstate; // state variable
 
 bool END_OF_FIRST_PASS; // signals stop of state machine
-bool ERROR_FLAG; // is set when pushRecord() is passed a non-empty error
-// message. When the first pass is complete, the assembler will not
-// continue to the second pass if this flag is set.
 
 int lineNum; // line number of source module
 int memLoc; // memory location counter
@@ -679,10 +676,6 @@ int & tblSub, int & memLoc){
 		}else if(sym != NULL && sym->type == REG){
 			// if symbol is in symtbl but not a label or unk
 			err = NOT_VAL;
-		}else if(sym != NULL && sym->type == LBL && \
-		(sym->value > 1022 || sym->value < -1024 || sym->value % 2 != 0)){
-			// value of symbol out of bounds or odd
-			err = OUT_BOUND;
 		}
 		break;
 	case BRA13:

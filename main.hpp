@@ -19,6 +19,7 @@
 #include "symbols.hpp"
 #include "record.hpp"
 #include "secondpass.hpp"
+#include "error.hpp"
 
 enum Pass { FP, SP };
 

@@ -9,11 +9,14 @@
 #include "opcode.hpp"
 
 #define IS_BYTE(x) ((x & ~0xFF) == 0)
+#define IS_WORD(x) ((x & ~0xFFFF) == 0)
 #define IN_BOUNDS_BRA10(x) (x >= -1024 && x <= 1022)
 #define IN_BOUNDS_BRA13(x) (x >= -8192 && x <= 8190)
 #define IN_BOUNDS_MEMR(x) (x >= -64 && x <= 63)
 #define IN_BOUNDS_SVC(x) (x >= 0 && x <= 15)
 #define IN_BOUNDS_CEX(x) (x >= 0 && x <= 7)
+#define HIGH_BYTE(x) ((x >> 8) & 0xFF)
+#define LOW_BYTE(x) (x & 0xFF)
 
 void arith(Record * record, std::string & operands){
 	std::string operand = getOperand(operands);
@@ -91,10 +94,17 @@ void reginit(Record * record, std::string & operands){
 		// symbol
 		val = symPtr->value;
 	}else{ // regular value
-		int val = extractValue(operand);
+		val = extractValue(operand);
 	}
-	if(IS_BYTE(val)){
-		tempOp.bf.byte = symPtr->value;
+	if(IS_WORD(val)){
+		switch(record->cmdSubScr){
+		case MOVH:
+			tempOp.bf.byte = HIGH_BYTE(val);
+			break;
+		default:
+			tempOp.bf.byte = LOW_BYTE(val);
+			break;
+		}
 	}else{ // operand out of bounds
 		record->error = OUT_BOUND;
 		spstate = CHK_FIRST_TOK;
@@ -204,7 +214,6 @@ void bra(Record * record, std::string & operands){
 		record->error = OUT_BOUND;
 	}
 	spstate = CHK_FIRST_TOK;
-	std::cout << "BRA OFF: " << offset << std::endl;
 }
 
 void memr(Record * record, std::string & operands){

@@ -10,6 +10,8 @@
 
 #include "record.hpp"
 
+#define NO_MEMLOC -1
+
 // holds all records for printing into list file:
 Record * records; // head of record list
 Record * records_end; // rear of record list for printing FIFO
@@ -42,15 +44,15 @@ ErrorEnum error, int tblSub, int memLoc, unsigned short opcode){
 
 std::ostream & operator<<(std::ostream & os, const Record * rec){
 	os << std::setw(3) << rec->lineNum;
-	if(rec->memLoc >= 0){
+	if(rec->memLoc != -1){
 		os << "   0x" << std::setfill('0'); // print as 0xNNNN padded w/ 0
 		// print formatted hex
 		os << std::uppercase; // A-F instead of a-f
 		os << std::hex << std::setw(4) << rec->memLoc;
-		os << std::hex << " 0x" << std::setw(4) << rec->opcode << std::dec << " \t";
+		os << std::hex << " 0x" << std::setw(4) << rec->opcode << std::dec << ' ';
 		os << std::setfill(' '); // clear setw fill
 	}else{
-		os << "             \t";
+		os << "                 ";
 	}
 	os << rec->record;
 	if(rec->error == -1){

@@ -30,8 +30,6 @@ struct Record { // doubly linked list node
 
 extern Record * records; // buffer of records to be printed
 extern Record * records_end;  // for printing FIFO
-extern bool ERROR_FLAG; // flag will be set on finding an error
-// this flag stops execution of the second pass
 
 void initRecords(Record *& head);
 // Initializes head and records_end to NULL

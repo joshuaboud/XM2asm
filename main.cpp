@@ -50,7 +50,6 @@ int main(int argc, char ** argv){
 	
 	
 	if(!ERROR_FLAG){
-		std::cout << "First pass finished with no errors." << std::endl;
 		// call second pass here
 		secondPassStateMachine(baseFileName);
 		printListFile(baseFileName, timestamp, srcName, SP);
@@ -81,7 +80,7 @@ std::string srcName, Pass pass){
 	}
 	#endif
 	listFile << "X-Makina Assembler V 1.1" << std::endl;
-	listFile << "File opened: \"" << baseFileName << "\"" << std::endl;
+	listFile << "File opened: \"" << srcName << "\"" << std::endl;
 	listFile << "Time of execution: " << ctime(& timestamp) << std::endl;
 	printRecords(listFile);
 	listFile << std::endl;
@@ -101,6 +100,7 @@ std::string srcName, Pass pass){
 			std::endl;
 		}else{
 			listFile << "First pass finished with no errors." << std::endl;
+			std::cout << "First pass finished with no errors." << std::endl;
 		}
 		break;
 	case SP:
@@ -115,7 +115,10 @@ std::string srcName, Pass pass){
 		}else{
 			listFile << "First and second pass finished with no errors." <<
 			std::endl;
+			std::cout << "Second pass finished with no errors." << std::endl;
 		}
+		break;
+	default:
 		break;
 	}
 	

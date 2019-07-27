@@ -1,4 +1,4 @@
-TARGET = XM2ass
+TARGET = XM2asm
 LIBS = -lm
 CC = g++
 CFLAGS = -std=c++11

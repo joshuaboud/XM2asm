@@ -182,7 +182,7 @@ void mem(Record * record, std::string & operands){
 void bra(Record * record, std::string & operands){
 	std::string operand = getOperand(operands);
 	Symbol * symPtr;
-	int label;
+	unsigned short label;
 	symPtr = checkTable(symtbl,operand);
 	if(symPtr != NULL){
 		// symbol found
@@ -191,21 +191,19 @@ void bra(Record * record, std::string & operands){
 		// non-label value
 		label = extractValue(operand);
 	}
-	
 	// encode offset
-	int dist = label - (record->memLoc + 2);
+	unsigned short dist = label - ((unsigned short)record->memLoc + 2);
 	if(dist % 2 != 0){
 		// branch to uneven address
 		record->error = BRA_UNEV;
 	}
-	int offset = dist >> 1;
-	if(commands[record->cmdSubScr].ops == BRA_ && IN_BOUNDS_BRA10(offset)){
+	unsigned short offset = dist >> 1;
+	if(commands[record->cmdSubScr].ops == BRA_){
 		union bra10_op tempOp;
 		tempOp.opcode = commands[record->cmdSubScr].baseOp;
 		tempOp.bf.off = offset;
 		record->opcode = tempOp.opcode;
-	}else if (commands[record->cmdSubScr].ops == BRA13 &&
-	IN_BOUNDS_BRA13(offset)){
+	}else if (commands[record->cmdSubScr].ops == BRA13){
 		union bra13_op tempOp;
 		tempOp.opcode = commands[record->cmdSubScr].baseOp;
 		tempOp.bf.off = offset;

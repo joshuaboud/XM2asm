@@ -96,9 +96,9 @@ bool validValue(std::string operand){
 
 int extractValue(std::string operand){
 	int value;
-	for(int i = 0; i < (int)operand.length(); i++){
+	/*for(int i = 0; i < (int)operand.length(); i++){
 		operand[i] = tolower(operand[i]);
-	}
+	}*/
 	std::istringstream ss(operand); // open string as input stream
 	char type = ss.get(); // pop first character, either #, $, '
 	
@@ -132,10 +132,13 @@ int extractValue(std::string operand){
 }
 
 bool validConstant(std::string operand){
-	std::string constants[19] = { "#0", "#1", "#2", "#4", "#8", "#16", "#32",\
-		 "#-1", "$0", "$1", "$2", "$4", "$8", "$10", "$20", "$FF", "$ff", "$FFFF", "$ffff"};
-	for(int i = 0; i < 19; i++){
-		if(operand == constants[i]){ // operand is valid constant
+	unsigned short val = extractValue(operand);
+	unsigned short constants[8] = { 0, 1, 2, 4, 8, 16, 32, 0xFFFF };
+	
+	//std::string constants[19] = { "#0", "#1", "#2", "#4", "#8", "#16", "#32",\
+	//	 "#-1", "$0", "$1", "$2", "$4", "$8", "$10", "$20", "$FF", "$ff", "$FFFF", "$ffff"};
+	for(int i = 0; i < 8; i++){
+		if(val == constants[i]){ // operand is valid constant
 			return true;
 		}
 	}
@@ -165,7 +168,7 @@ std::string getOperand(std::string & operands){
 	// find position of first comma
 	int delimiterPos = operands.find(',');
 	
-	if(delimiterPos == std::string::npos){ // no comma
+	if(delimiterPos == std::string::npos || operands[0] == '\''){ // no comma
 		switch(operands[0]){
 		case '\'': // in case operand is ' ' (space)
 			// keep until last \', inclusive

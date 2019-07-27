@@ -226,7 +226,9 @@ void genSRecs(std::string baseFileName){
 	}
 	byteCnt = 0;
 	sBuff[byteCnt++] = HIGH_BYTE(record->memLoc);
+	chkSum = HIGH_BYTE(record->memLoc);
 	sBuff[byteCnt++] = LOW_BYTE(record->memLoc);
+	chkSum += LOW_BYTE(record->memLoc);
 	while(!done){
 		while(record != NULL && record->memLoc == NO_MEMLOC){
 			// skip non inst or data recs
@@ -251,7 +253,9 @@ void genSRecs(std::string baseFileName){
 			chkSum = 0;
 			if(record != NULL){
 				sBuff[byteCnt++] = HIGH_BYTE(record->memLoc);
+				chkSum += HIGH_BYTE(record->memLoc);
 				sBuff[byteCnt++] = LOW_BYTE(record->memLoc);
+				chkSum += LOW_BYTE(record->memLoc);
 				prevMemLoc = record->memLoc;
 			}else{
 				done = true;
@@ -260,9 +264,12 @@ void genSRecs(std::string baseFileName){
 		}
 		if(record->cmdSubScr == BYTE){
 			sBuff[byteCnt++] = LOW_BYTE(record->opcode);
+			chkSum += LOW_BYTE(record->opcode);
 		}else{
 			sBuff[byteCnt++] = LOW_BYTE(record->opcode);
+			chkSum += LOW_BYTE(record->opcode);
 			sBuff[byteCnt++] = HIGH_BYTE(record->opcode);
+			chkSum += HIGH_BYTE(record->opcode);
 		}
 		prevMemLoc = record->memLoc;
 		record = record->next;

@@ -19,7 +19,7 @@
 
 enum { r = 0, c };
 enum { w = 0, b };
-enum { pr = 0, po};
+enum { po = 0, pr };
 
 // unions for opcodes
 
@@ -90,7 +90,7 @@ struct bra13_bf {
 
 union bra13_op {
 	unsigned short opcode;
-	struct bra10_bf bf;
+	struct bra13_bf bf;
 };
 
 struct memr_bf {

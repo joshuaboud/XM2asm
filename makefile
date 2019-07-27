@@ -1,4 +1,4 @@
-TARGET = XM2
+TARGET = XM2ass
 LIBS = -lm
 CC = g++
 CFLAGS = -std=c++11
@@ -9,7 +9,7 @@ default: $(TARGET)
 all: default
 
 OBJECTS = $(patsubst %.cpp, %.o, $(wildcard *.cpp))
-HEADERS = $(wildcard *.h)
+HEADERS = $(wildcard *.hpp)
 
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@

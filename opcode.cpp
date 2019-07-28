@@ -89,7 +89,7 @@ void reginit(Record * record, std::string & operands){
 	union reginit_op tempOp;
 	tempOp.opcode = commands[record->cmdSubScr].baseOp;
 	// first operand
-	int val;
+	unsigned short val;
 	if((symPtr = checkTable(symtbl,operand)) != NULL){
 		// symbol
 		val = symPtr->value;

@@ -747,14 +747,14 @@ int & tblSub, int & memLoc){
 	if((operand = getOperand(token)) != ""){ // extraneous operand(s)
 		err = EXTR_OP;
 	}
-	if(!record.eof()){ // operands followed by non-comment garbage
+	/*if(!record.eof()){ // operands followed by non-comment garbage
 		std::string comments;
 		record >> std::ws; // eat whitespace
 		getline(record, comments);
 		if(comments[0] != ';'){
 			err = GARB;
 		}
-	}
+	}*/
 	// end of state, push record with either empty err or error description
 	pushRecord(records, lineNum, record.str(), err, tblSub, memLoc);
 	fpstate = CHECK_FIRST_TOKEN;
